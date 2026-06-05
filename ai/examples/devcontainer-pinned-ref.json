@@ -1,0 +1,3 @@
+{
+  "postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/usulpt/CM-AI-Content-Skills/v0.1.0/scripts/install-ai-assets.sh | AI_ASSETS_REF=v0.1.0 bash"
+}

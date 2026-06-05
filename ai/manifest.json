@@ -1,0 +1,100 @@
+{
+  "name": "cm-ai-content-skills",
+  "version": "0.1.0",
+  "updated": "2026-06-03",
+  "repository_url": "https://github.com/usulpt/CM-AI-Content-Skills.git",
+  "minimum_installer_version": "0.1.0",
+  "install_targets": [
+    {
+      "name": "base",
+      "description": "Neutral shared content install used as the canonical local copy.",
+      "destinations": [
+        "$HOME/.config/cm-ai-content"
+      ]
+    },
+    {
+      "name": "codex",
+      "description": "Shared skills for Codex-compatible skill discovery.",
+      "destinations": [
+        "$HOME/.agents/skills"
+      ]
+    },
+    {
+      "name": "copilot",
+      "description": "Shared skills for GitHub Copilot agent skill discovery.",
+      "destinations": [
+        "$HOME/.copilot/skills"
+      ]
+    },
+    {
+      "name": "claude",
+      "description": "Shared skills for Claude Code skill discovery.",
+      "destinations": [
+        "$HOME/.claude/skills"
+      ]
+    }
+  ],
+  "agents": [],
+  "skills": [
+    {
+      "name": "style-guide-validator",
+      "path": "skills/style-guide-validator",
+      "description": "Validate documentation wording and formatting against a repository style guide.",
+      "targets": [
+        "codex",
+        "copilot",
+        "claude"
+      ],
+      "references": [
+        "skills/style-guide-validator/references/style-guide-full.md"
+      ]
+    },
+    {
+      "name": "tutorial-source-to-mkdocs",
+      "path": "skills/tutorial-source-to-mkdocs",
+      "description": "Convert tutorial source material into MkDocs-compatible documentation.",
+      "targets": [
+        "codex",
+        "copilot",
+        "claude"
+      ]
+    }
+  ],
+  "instructions": [
+    {
+      "name": "docs-markdown",
+      "path": "instructions/docs-markdown.instructions.md",
+      "description": "Shared Markdown documentation conventions for MkDocs-compatible repositories."
+    },
+    {
+      "name": "mkdocs-config",
+      "path": "instructions/mkdocs-config.instructions.md",
+      "description": "Guidance for safe MkDocs configuration changes."
+    },
+    {
+      "name": "protected-generated",
+      "path": "instructions/protected-generated.instructions.md",
+      "description": "Guidance for protected and generated documentation artifacts."
+    },
+    {
+      "name": "python-automation",
+      "path": "instructions/python-automation.instructions.md",
+      "description": "Guidance for Python automation and documentation helper scripts."
+    },
+    {
+      "name": "tutorial-conversion",
+      "path": "instructions/tutorial-conversion.instructions.md",
+      "description": "Workflow guidance for tutorial conversion tasks."
+    },
+    {
+      "name": "convert-tutorial-source-to-mkdocs",
+      "path": "instructions/convert-tutorial-source-to-mkdocs.prompt.md",
+      "description": "Prompt template for tutorial-source conversion."
+    },
+    {
+      "name": "validate-folder-style-guide",
+      "path": "instructions/validate-folder-style-guide.prompt.md",
+      "description": "Prompt template for style-guide validation."
+    }
+  ]
+}
