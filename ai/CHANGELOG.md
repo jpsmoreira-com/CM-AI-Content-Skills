@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0 - 2026-06-05
+
+- Added the `docs-change-summary` skill for reader-focused commit messages, PR titles, PR descriptions, and changelog summaries for documentation changes.
+- Added reusable documentation change-summary instructions for repositories that generate MkDocs documentation and changelog feeds.
+
 ## 0.1.0 - 2026-06-03
 
 - Added the initial public AI asset library layout.

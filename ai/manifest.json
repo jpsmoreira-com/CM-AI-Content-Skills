@@ -1,7 +1,7 @@
 {
   "name": "cm-ai-content-skills",
-  "version": "0.1.0",
-  "updated": "2026-06-03",
+  "version": "0.2.0",
+  "updated": "2026-06-05",
   "repository_url": "https://github.com/usulpt/CM-AI-Content-Skills.git",
   "minimum_installer_version": "0.1.0",
   "install_targets": [
@@ -37,6 +37,16 @@
   "agents": [],
   "skills": [
     {
+      "name": "docs-change-summary",
+      "path": "skills/docs-change-summary",
+      "description": "Draft reader-focused commit messages, PR titles, PR descriptions, and changelog summaries for documentation changes.",
+      "targets": [
+        "codex",
+        "copilot",
+        "claude"
+      ]
+    },
+    {
       "name": "style-guide-validator",
       "path": "skills/style-guide-validator",
       "description": "Validate documentation wording and formatting against a repository style guide.",
@@ -61,6 +71,11 @@
     }
   ],
   "instructions": [
+    {
+      "name": "docs-change-summary",
+      "path": "instructions/docs-change-summary.instructions.md",
+      "description": "Guidance for reader-focused documentation commit messages, PR text, and changelog summaries."
+    },
     {
       "name": "docs-markdown",
       "path": "instructions/docs-markdown.instructions.md",
