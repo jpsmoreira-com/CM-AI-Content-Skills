@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Content Portals Dashboard - Prepare",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/devcontainer-integration/post-create-dashboard.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Content Portals Dashboard - Run",
+      "type": "shell",
+      "command": "DASHBOARD_ROOT=\"${workspaceFolder}\"; DASHBOARD_VENV=\"${DASHBOARD_VENV:-/home/vscode/.venvs/content-portals-dashboard}\"; if [ ! -x \"$DASHBOARD_VENV/bin/python\" ]; then bash \"$DASHBOARD_ROOT/devcontainer-integration/post-create-dashboard.sh\"; fi; \"$DASHBOARD_VENV/bin/python\" -m streamlit run \"$DASHBOARD_ROOT/app.py\" --server.address 0.0.0.0 --server.port 8501 --server.headless true",
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "env": {
+          "REQUESTS_CA_BUNDLE": "/etc/ssl/certs/ca-certificates.crt",
+          "TFS_DASHBOARD_AUTH_MODE": "Git Credentials"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Content Portals Dashboard - Stop",
+      "type": "shell",
+      "command": "pkill -f 'streamlit run .*tfs-cherry-pick-dashboard.*app.py' || true",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    }
+  ]
+}
