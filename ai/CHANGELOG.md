@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 - 2026-06-30
+
+- Added a managed root `AGENTS.md` baseline for repositories that consume Content AI automation.
+- Updated the TFS Autonomous Pipeline asset sync flow to publish the managed root `AGENTS.md` into target repositories while keeping the full asset copy under `.agents/content-ai/`.
+
 ## 0.2.0 - 2026-06-05
 
 - Added the `docs-change-summary` skill for reader-focused commit messages, PR titles, PR descriptions, and changelog summaries for documentation changes.
