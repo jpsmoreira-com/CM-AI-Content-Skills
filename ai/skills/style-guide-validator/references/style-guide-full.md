@@ -693,7 +693,7 @@ Rules for linking:
 Reusable snippets live in the `includes/` folder. Include them with the include-markdown plugin directive:
 
 ```markdown
---8<-- "includes/snippet-name.md"
+{% include-markdown '' %}
 ```
 
 Do not copy snippet content into multiple pages. If a paragraph appears in more than one page, extract it into `includes/` and reference it from both.
