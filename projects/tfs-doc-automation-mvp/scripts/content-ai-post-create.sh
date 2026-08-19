@@ -558,6 +558,10 @@ EOF
 }
 
 run_health_check() {
+  # doc_automation is imported from the project directory, not installed into the
+  # venv — run the check from there so it also works when the script is invoked
+  # from a target repository workspace.
+  cd "$PIPELINE_PROJECT_PATH"
   "$PIPELINE_PYTHON" - <<'PY'
 import importlib
 
