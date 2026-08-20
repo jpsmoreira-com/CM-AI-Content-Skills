@@ -373,6 +373,7 @@ The audience usually has strong domain knowledge and mixed software familiarity.
 - Terminology: Use manufacturing domain terms such as Material, Resource, Step, Flow, Recipe, BOM, Production Order, Transfer Order, Schedule, Inspection, and SPC with confidence. Define system-specific or advanced terms when they first appear in a tutorial.
 - Voice: Instructional, task-focused, and supportive. Use numbered steps, exact GUI labels, screenshots where possible, and short outcomes after major tasks.
 - Technical familiarity: Low to medium by default, increasing only for specialized tutorials such as automation, IoT Data Platform, or equipment integration. Avoid infrastructure vocabulary unless the tutorial explicitly requires it.
+- Page structure - H1 title → Description paragraph stating the learning objective → **Target Audience** (H2) - the roles this tutorial is designed for. → **Prerequisites** (H2) - what must be in place before starting. → Numbered steps with exact GUI labels and expected outcomes after key milestones. → **Available Guides** (H2) on tutorial index pages - a table listing modules, titles, and guide type.
 
 ### User Guide Subsections
 
@@ -478,34 +479,288 @@ The audience has medium technical familiarity and strong production planning, lo
 
 ##### Target audience composition
 
-The audience has medium-high technical familiarity. Readers know analytics concepts and need to understand the MES reporting model, data freshness, aggregation behavior, and access patterns.
+The audience has medium-high technical familiarity. Readers know analytics concepts and need to understand the MES reporting model, data freshness, aggregation behavior, and access patterns. They may also need to understand cost forecasting, quality metrics, and operational dashboards. Manufacturing domain knowledge is expected.
 
 ##### Prescriptive style rules
 
-- Terminology: Use BI terms such as report, Analytics View, ODS, DWH, OLAP, cube, aggregation, SQL Server Reporting Services, dimension, measure, and R integration. Spell out ODS and DWH on first use in standalone pages.
-- Voice: Technical reference with operational clarity. Explain data latency, aggregation, and filter behavior precisely.
-- Technical familiarity: Medium-high. Do not explain general BI concepts, but clarify MES-specific data architecture and permissions.
+- Terminology: Use BI terms precisely, including report, Analytics View, ODS, DWH, OLAP, cube, aggregation, SQL Server Reporting Services, Stimulsoft, Grafana, dimension, measure, and R integration. Spell out ODS (Operational Data Store) and DWH (Data Warehouse) on first use in each standalone page. Distinguish between Reports (SSRS or Stimulsoft paginated) and Dashboards (Grafana). CDM and UNS may be used without expansion on pages deep within real-time or data-platform-related features.
+- Voice: Technical reference with operational clarity. Explain data latency, aggregation schedules, and filter behavior precisely. For report and dashboard pages, lead with what data is shown and why, then provide a data breakdown with formulas. For procedure pages, use imperative steps and preconditions.
+- Page structure — report and dashboard pages: Follow this fixed order: Overview (business context) → Folder (which Analytics View folder the report lives in) → Database (ODS, DWH, or ClickHouse) → Data (bullet list of key metrics) → Example (screenshot) → Data Breakdown (table with formula column) → Entity Filters (what can be selected or filtered). Use tables extensively for data definitions.
+- Page structure — procedure pages: Follow the standard procedure pattern: security notation → Overview → Preconditions → Sequence of Steps → Result.
+- Security notation: Apply `:lock:` immediately after H1 with the appropriate permission scope (for example, `:lock: Analytics.**Reports**` or `:lock: AnalyticsViews.**Show**`).
+- Tables: Report and dashboard pages must include a Data Breakdown table with at minimum the columns Data, Description, Formula, and Datasource. Formulas show calculations explicitly. The Datasource column references table names from DWH or ODS by exact name.
+- Acronym expansion: Spell out ODS and DWH on first use in each standalone page, even if the section index already defined them.
+- Technical familiarity: Medium-high. Assume readers understand aggregation, data warehousing, reporting concepts, and manufacturing execution terminology, but clarify MES-specific data architecture, permission behavior, and report lifecycle.
 
 #### Automation
 
 ##### Target audience composition
 
-The audience is highly technical and sits between IT and OT. Readers are expected to understand equipment integration concepts and may also need software configuration detail.
+The audience is highly technical and sits between IT and OT. Readers are expected to understand equipment integration concepts, workflow design, automation protocols, and device communication. They may be automation engineers, system integrators, or advanced MES administrators configuring equipment or workflows.
 
 ##### Prescriptive style rules
 
-- Terminology: Use automation vocabulary precisely, including Connect IoT, Automation Controller, Automation Driver Definition, Automation Protocol, Automation Workflow, Automation Manager, task, converter, event, driver, protocol, PLC, and specific communication protocol names when relevant.
-- Voice: Technical, explicit, and option-aware. Configuration paths, defaults, runtime effects, and monitoring signals must be clear.
-- Technical familiarity: High. Assume automation and IT/OT integration knowledge, but explain Critical Manufacturing-specific automation object relationships.
+- Terminology: Use automation vocabulary precisely, including Automation Controller, Automation Driver Definition, Automation Protocol, Automation Workflow, Automation Manager, Automation Business Scenario, Connect IoT, Factory Automation, task, converter, workflow, event, driver, protocol, state, metadata, scope, and condition. Use exact entity names as they appear in the UI and in security permissions (for example, `Administration.AutomationBusinessScenario`). Spell out protocol names when relevant (for example, Bluetooth 4.1, MQTT). Do not expand well-known abbreviations such as IoT, OT, IT, and PLC unless the page is introductory.
+- Voice: Technical, explicit, and option-aware. Configuration paths, defaults, runtime effects, and monitoring signals must be clear. For procedure pages, use imperative numbered steps. For reference pages covering tasks and converters, use scannable table-driven structures with explicit remarks. For conceptual pages covering business scenarios and workflow building, explain architecture and metadata structure with both prose and schema tables.
+- Page structure — entity index pages: Keep these pages concise. Use H1 + security notation + Overview (one to two paragraphs explaining role and purpose) + link to tutorials + Management Operations section pointing to the dedicated operations page. Do not add lengthy subsections; prioritize brevity and cross-references.
+- Page structure — procedure pages: Overview → Sequence of Steps, where each major step is an H3 (for example, `### Step 1: General Data`). Include screenshots after each step group. Use admonition blocks for precautions or hints.
+- Page structure — business scenario and conceptual pages: Use H2 for major concepts such as Overview, Structure, and Execution Engine. Use H3 for sub-topics. Include a table describing the main configuration object with columns for property, data type, mandatory, and default value. Use `[[alias]]` links to cross-reference sub-pages for steps, script scopes, and related entities.
+- Page structure — task and converter reference pages: Follow this fixed structure — H1 + icon representation + introductory sentence + task visual → Workflows (capability table with Data Flow and Control Flow columns) → Inputs (table) → Outputs (table) → Action Settings (H3 per action type, each with its own Inputs and Outputs sub-tables and a UI screenshot) → Settings (comprehensive reference table) → Remarks.
+- Security notation: Apply `:lock:` immediately after H1 with entity and operation (for example, `:lock: Automation.**NavigationPane**` or `:lock: AutomationControllerInstance.**Start**`). Stack multiple permission notations if a feature requires multiple checks.
+- Tables: The Workflows capability table uses Material Design icons (`:material-check:` and `:material-close:`) for Data Flow and Control Flow indicators. The Inputs and Outputs tables include a column for whether the field is a trigger. The Settings table includes columns for Possible Values and Default.
+- Code and expressions: When showing JSONata expressions or JSON metadata structures, use fenced code blocks with the appropriate language tag. Precede the code block with a prose explanation of the expression.
+- Admonitions: Use `!!! warning` for deprecated features, restricted behaviors, or version-specific notes. Use `!!! note` for behavioral clarifications. Use `!!! info` for helpful context and hints.
+- Technical familiarity: High. Assume automation and IT/OT integration knowledge — drivers, protocols, event handling, and workflow design — but explain Critical Manufacturing-specific automation object relationships, state models, and configuration points. Do not explain general automation concepts.
 
 #### Data Platform
 
 ##### Target audience composition
 
-This is one of the most technically advanced User Guide subsections. Readers are expected to understand data architecture, event ingestion, analytics access, and possibly machine learning lifecycle concepts.
+This is one of the most technically advanced User Guide subsections. Readers are expected to understand data architecture, event ingestion, analytics access, and possibly machine learning lifecycle concepts. They may be data engineers, system integrators, or advanced MES administrators working with APIs, asset models, or data pipelines.
 
 ##### Prescriptive style rules
 
-- Terminology: Use data engineering terms accurately, including Data Platform, Canonical Data Model, CDM, ISA-95, OData, IoT Event Definition, IoT Schema, Data Set, Data Platform Workflow, ML Model, Grafana, Cube.dev, event ingestion, materialization, enrichment, and asset.
-- Voice: Technical reference with enough conceptual context to support architecture decisions. Mark preview features clearly.
-- Technical familiarity: High to very high. Assume data and platform knowledge, but explain product-specific data objects, lifecycle states, and access points.
+- Terminology: Use data engineering terms accurately, including Data Platform, Canonical Data Model, CDM, ISA-95, OData, IoT Event Definition, IoT Schema, Data Set, Data Platform Workflow, ML Model, Grafana, Cube.dev, event ingestion, materialization, enrichment, asset, Asset Directory, Asset Template, Property Definition, Property Value, and telemetry type. Define entity-specific data types (Boolean, Date, Datetime, Decimal, Geopoint, Integer, Long, String, Time, Url) exactly as they appear in the UI. Do not expand well-known abbreviations such as MQTT unless the page is introductory.
+- Voice: Technical reference with enough conceptual context to support architecture decisions. Explain data flow, lifecycle states, and access points precisely. For operation pages, use step-by-step instructions with sub-steps grouped by form section. For entity overview pages, explain the entity's role in the larger Data Platform ecosystem.
+- Page structure — entity overview pages: Open with security notation, then two to three sentences explaining what the entity represents. Describe the entity's composition — properties, behaviors, relationships — using a bulleted list or short paragraphs. Include a diagram showing entity relationships for core concept pages. For entities with multiple component types (for example, Assets with standard properties, telemetry properties, events, and commands), describe each component type with a brief explanation.
+- Page structure — operation pages: Follow the standard pattern — Overview → Setup → Preconditions → Sequence of Steps. For complex procedures such as adding an Asset, divide the procedure into multiple H2 step sections (for example, `## Step 1: General Data`, `## Step 2: Templates`). For steps that involve selecting among multiple types, use H3 subsections with a comparison table showing which properties are available per type. Include a reference table listing all possible values for each property type.
+- Security notation: Apply `:lock:` immediately after H1 with operation-specific permissions (for example, `:lock: Asset.**Show**` or `:lock: Asset.**Create**`). Stack multiple permission notations when an entity or page requires more than one permission to access.
+- Tables: Use comparison tables to show type options side by side (for example, data types and the properties each one supports). Property definition tables use at minimum the columns Name, Display Name, Description, and Data Type. Permission matrices show role, entity type, and setting combinations.
+- Icons and visual references: When explaining multi-step procedures that involve list management — adding, removing, or reordering items — reference the relevant UI element using Material Design icon syntax (for example, `:material-plus:` or `:material-trash-can:`).
+- Technical familiarity: Very high. Assume readers understand OData APIs, columnar databases, and event streaming, but explain Critical Manufacturing-specific data objects, lifecycle states, and access patterns. Do not over-explain standard data engineering concepts.
+
+## Documentation Structure
+
+Use this section to understand how the documentation set is physically and logically organized. Follow these rules when creating, moving, or restructuring any file in the repository.
+
+### Repository Layout
+
+The documentation lives under `docs/` and is divided into six top-level guide sections, each represented by a folder:
+
+| Folder | Purpose |
+|---|---|
+| `introduction/` | Orientation, definitions, audience overview, and documentation map |
+| `systemrequirements/` | Hardware, software, and deployment prerequisites |
+| `installationguide/` | Step-by-step deployment and setup instructions |
+| `userguide/` | Application feature reference, the largest section |
+| `operationguide/` | System administration and application administration |
+| `tutorials/` | Task-based learning modules |
+
+Two support folders sit alongside the guide sections:
+
+- `includes/` — Reusable content snippets included by the MkDocs include-markdown plugin.
+- `assets/` — Shared images, stylesheets, and JavaScript.
+
+Do not create top-level folders outside this set without an explicit request.
+
+### File and Folder Naming
+
+- Use kebab-case for all new folders and files: `business-data`, `system-administration`, `planning-and-installation-guides`.
+- Name index files `index.md`. Every folder that appears as a section in the navigation must contain an `index.md`.
+- Prefer lowercase names with hyphens. Avoid camelCase and underscores in new files.
+- Do not include version numbers in file or folder names.
+- Store images in an `images/` subfolder placed inside the same folder as the markdown file that references them. Reference them with relative paths: `![alt text](images/filename.png)`.
+
+### Navigation and `.pages` Files
+
+Navigation order is controlled by `.pages` files, not by the `nav` key in `mkdocs.yml`. Every folder that is visible in the navigation must contain a `.pages` file.
+
+A `.pages` file has the following structure:
+
+```yaml
+title: Section Display Name
+nav:
+    - Display Name: index.md
+    - Child Page Title: child-page.md
+    - Subfolder Title: subfolder-name
+    - ... | **/*
+order: asc
+```
+
+Rules for `.pages` files:
+
+- `title` is the display name shown in navigation. It may differ from the folder name.
+- List index pages first in `nav`.
+- List explicitly ordered pages before the catch-all pattern.
+- Use `... | **/*` to include all remaining files in any order.
+- Use `... | flat | **/*` to flatten a subfolder hierarchy into the parent level.
+- Do not modify `mkdocs.yml` to add or reorder pages.
+
+### Front-matter Requirements
+
+Every markdown file must begin with a YAML front-matter block. The required keys are:
+
+```yaml
+---
+alias: unique-kebab-case-identifier
+description: "One or two sentences summarizing the content of this page."
+---
+```
+
+Rules for front-matter:
+
+- `alias` must be unique across the entire documentation project. Check existing aliases before generating a new one.
+- Use kebab-case for aliases. Base the alias on the page title or its position in the hierarchy. For example, a Material page inside Business Data may use `business-data-material`.
+- `description` must be present and must summarize the content of the page in one or two sentences.
+- Additional optional keys include `tags`, `hide`, `glightbox`, and `retitled`. Add them only when needed.
+- Do not duplicate alias values. A collision breaks cross-page linking.
+
+### Heading Hierarchy
+
+Each file uses one H1, which is the page title. Do not use more than one H1 per file.
+
+Use headings consistently:
+
+| Level | Use |
+|---|---|
+| H1 | Page title. One per file. |
+| H2 | Major sections within the page (for example, Overview, State Model, Target Audience, Guide Contents). |
+| H3 | Subsections within a major section. |
+| H4 | Rarely used. Only for deep reference content that genuinely requires a fourth level. |
+
+Do not skip heading levels. An H3 must always be nested inside an H2.
+
+### Page Types and Their Required Structure
+
+Different page types follow consistent internal structures. Use the appropriate pattern when creating a new page.
+
+#### Index Pages
+
+Index pages serve as the entry point for a section. Every section folder must have an `index.md` that follows this structure:
+
+1. H1 title.
+2. One or two paragraphs describing what the section covers.
+3. **Target Audience** (H2) — list the roles or job functions that this section is written for.
+4. **Guide Contents** (H2) — list the child pages or subsections with a one-sentence description of each.
+5. Auto-generation macro at the bottom: `{{ generate_index() }}` or `{{ generate_category_index() }}` as appropriate.
+
+Do not hard-code lists of child pages. Use the macro so the list stays current automatically.
+
+#### Business Data Entity Pages
+
+Entity pages describe a specific Critical Manufacturing MES entity. Follow this structure:
+
+1. H1 title matching the entity name.
+2. Security notation on the line immediately after the title: `:lock: EntityName.**Show**`.
+3. **Overview** (H2) — explain what the entity represents. Include a Mermaid diagram showing hierarchy or relationships where appropriate.
+4. **State Model** or **Lifecycle** (H2) — describe the states the entity can be in. Use Mermaid state diagrams and a table mapping each state to its meaning.
+5. **Tying Everything Together** (H2) — a Mermaid relationship diagram showing how this entity connects to others. Include click handlers that link to related entity pages.
+6. **Sequence of Steps** (H2) — a numbered list of the tasks required to set up or use the entity, with cross-references.
+7. Auto-generation macro at the bottom: `{{ generate_index() }}`.
+
+#### Task and Procedure Pages
+
+Task pages describe how to perform a specific action in the system. Follow this structure:
+
+1. H1 title phrased as an action (for example, "Create a Material").
+2. Short paragraph stating the purpose and any prerequisite conditions.
+3. Numbered steps using imperative verbs.
+4. Result statement after the final step confirming what the user achieves.
+5. Optional notes, warnings, or cross-references at the end.
+
+Do not mix concept explanation into numbered steps. Move background information to a preceding paragraph or a note block.
+
+#### Reference Pages
+
+Reference pages provide structured lookup information such as field definitions, configuration entries, or parameter tables. Follow this structure:
+
+1. H1 title.
+2. Short introductory paragraph scoping what is covered.
+3. Tables or definition lists for the reference content.
+4. Notes or warnings for edge cases or restrictions.
+
+Prefer tables over prose for reference content. Every table must have a caption formatted as `Table: Description`.
+
+### Cross-References and Linking
+
+Use alias-based wiki links for all internal cross-references:
+
+```markdown
+[[alias-name]]
+```
+
+The alias resolver converts these to the correct page URL automatically. This decouples content from file paths, so cross-references remain valid when pages move.
+
+Rules for linking:
+
+- Never hard-code relative file paths for cross-references. Use alias links.
+- Standard markdown links (`[Text](path.md)`) are acceptable only within the same page's image references or for external URLs.
+- An alias link that points to a non-existent alias will cause a build warning. Verify that the target alias exists.
+- Do not use absolute URLs for internal pages.
+
+### Reusable Content
+
+Reusable snippets live in the `includes/` folder. Include them with the include-markdown plugin directive:
+
+```markdown
+{% include-markdown '' %}
+```
+
+Do not copy snippet content into multiple pages. If a paragraph appears in more than one page, extract it into `includes/` and reference it from both.
+
+### Dynamic Content Macros
+
+The following macros are available and should be used where appropriate rather than manually maintaining lists:
+
+| Macro | Where to use |
+|---|---|
+| `{{ generate_index() }}` | Bottom of entity and subsection index pages to auto-list child pages |
+| `{{ generate_category_index() }}` | Bottom of top-level section index pages to auto-list by category |
+| `{{ extra.current_version }}` | Anywhere the current MES version number is needed |
+
+Do not remove these macros from existing pages. Do not substitute them with manually written lists.
+
+### Diagrams
+
+The documentation is transitioning from Mermaid to draw.io for all diagrams. Apply the following rules depending on whether you are working with existing or new content.
+
+#### New diagrams
+
+For any new diagram, create a draw.io file with the `.drawio.svg` extension and place it in the `diagrams/` subfolder alongside the markdown file that references it. Create the `diagrams/` folder if it does not already exist. Reference the file as a standard image:
+
+```markdown
+![Descriptive alt text](diagrams/diagram-name.drawio.svg)
+```
+
+Do not create new Mermaid diagrams.
+
+#### Existing Mermaid diagrams
+
+Do not remove or replace existing Mermaid diagrams unless explicitly asked to do so. When a page is being substantially revised and the diagram is within scope of the revision, replace the Mermaid diagram with an equivalent draw.io file and delete the Mermaid code block.
+
+#### What diagrams are used for
+
+Use diagrams to represent:
+
+- Entity relationships and hierarchies.
+- State transition models.
+- Architectural overviews.
+- Workflow sequences.
+
+Do not use a diagram for simple information that a table or list expresses more clearly.
+
+### Admonition Blocks
+
+Use admonition blocks to call out information that must not be missed. Do not overuse them. Apply bold inside admonition blocks only for entity names or GUI elements, never for general emphasis.
+
+| Block type | When to use |
+|---|---|
+| `!!! note` | Important information the reader should be aware of. |
+| `!!! info` | Helpful hints for a particular situation. |
+| `!!! warning` | Situations where the reader could make an error or cause data loss. |
+| `!!! success` | Recommended approach or correct example. |
+| `!!! failure` | Approach or pattern to avoid. |
+
+Table: Admonition block usage
+
+### Security Notation
+
+When a page describes a feature or entity that requires a specific permission to view, add the security notation immediately after the H1 heading:
+
+```markdown
+# Entity Name
+
+:lock: EntityName.**Show**
+```
+
+Use the exact permission name as it appears in the Critical Manufacturing MES security configuration. Do not add security notation to pages that describe publicly available information or navigation concepts.
