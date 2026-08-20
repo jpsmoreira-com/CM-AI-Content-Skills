@@ -1,7 +1,7 @@
 {
   "name": "cm-ai-content-skills",
-  "version": "0.2.0",
-  "updated": "2026-06-05",
+  "version": "0.3.0",
+  "updated": "2026-06-30",
   "repository_url": "https://github.com/usulpt/CM-AI-Content-Skills.git",
   "minimum_installer_version": "0.1.0",
   "install_targets": [
@@ -71,6 +71,11 @@
     }
   ],
   "instructions": [
+    {
+      "name": "root-agents",
+      "path": "instructions/AGENTS.md",
+      "description": "Managed root AGENTS.md baseline for repositories that consume Content AI automation."
+    },
     {
       "name": "docs-change-summary",
       "path": "instructions/docs-change-summary.instructions.md",
