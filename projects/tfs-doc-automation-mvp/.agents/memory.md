@@ -1,6 +1,6 @@
 # Project Memory - TFS Documentation Automation MVP
 
-Last updated: 2026-08-18
+Last updated: 2026-08-21
 
 ## Purpose
 
@@ -74,6 +74,12 @@ Useful existing capabilities from that project:
 Important: the Cherry Picks dashboard source is used as a reference. The integrated Cherry Pick propagation page in `tfs-doc-automation-mvp` is read-only and should not create branches, PRs, work item updates, or cherry-picks.
 
 ## Current Technical Direction
+
+- Persisted automatic flows resume after dashboard restarts using the original work item ID. A rerun clears any prior result-repair metadata so the dashboard status only describes the active rerun.
+- Autonomous CLI providers run in a dedicated per-branch Git worktree under `/workspaces/.content-ai-worktrees`. The configured workspace acts only as a dispatcher and is never checked out or modified by a work-item run.
+- When an agent result file already exists, the worker validates and continues it before considering any relaunch. This prevents the agent's own uncommitted changes from being mistaken for unrelated workspace changes.
+- After a successful Draft PR, the pipeline removes its isolated worktree and prunes Git worktree metadata. Reports remain in the configured persistent reports directory.
+- The Active Automation panel separates queued work items from work items running inside a worktree. Queue state is persisted locally and records when a work item is waiting for the shared repository lock.
 
 Framework decision:
 
@@ -949,3 +955,42 @@ Next recommended tasks:
 - The pipeline runs Git credential preflight again immediately before commit/push. This restores the persistent `store` helper if VS Code Remote has replaced it with its interactive helper after container startup.
 - WI 157502 rerun history: the first isolated-window run edited the documentation successfully but did not publish because the Git credential helper was still interactive. The following rerun failed before edits because the bridge treated one missing model-requested file as a terminal error. No WI 157502 rerun has completed through commit, push, and Draft PR yet.
 - The bridge now treats read/list/search/apply tool errors as feedback for the model's next iteration. A missing guessed path can no longer terminate an otherwise recoverable job.
+
+2026-08-20 GitHub Copilot CLI autonomous provider:
+
+- Added `copilot_cli` as a separate autonomous provider without changing the established `codex_cli` path.
+- The provider executes GitHub Copilot CLI non-interactively inside the configured DevContainer/Linux runtime, passes the dashboard `Model Name` to `--model`, and gives the agent the full prepared handoff through `-p`.
+- The agent can read, write, and run validation shell commands but is denied Git commit, push, reset, clean, and removal commands. The dashboard remains responsible for validating `agent-result.json`, committing, pushing, writing the final report, and creating the Draft PR after `green_light`.
+- Added bootstrap and post-create installation for `@github/copilot`, controlled by `TFS_AUTONOMOUS_INSTALL_GITHUB_COPILOT_CLI=true`.
+- Provider preflight now confirms that the executable exists, authentication works, and the configured model can answer a small non-interactive request. Missing authentication starts a one-time GitHub OAuth device flow and stores its CLI state under the persisted Content AI settings directory when available.
+- WI 157946 is the next real end-to-end validation once the GitHub device authorization is completed for the active devcontainer.
+- Added the persisted `GitHub Copilot Host` runtime setting for Enterprise Cloud data-residency tenants. The active test environment uses `https://criticalmanufacturing.ghe.com`; device authorization is launched with `copilot login --host <configured-host> --device-code`.
+- Headless DevContainers generally have no Linux keychain. Copilot CLI therefore asks whether its OAuth token may be stored in its plaintext `config.json`; the dashboard login launcher accepts this explicit fallback and applies mode `0700` to the persisted Copilot home. Without that response, OAuth can succeed but the CLI cannot retain the token.
+
+2026-08-20 GitHub Copilot CLI result recovery:
+
+- A live WI 157946 run proved that GitHub Copilot CLI can authenticate through the persisted native `~/.copilot` state, read the complete context package, and edit the target branch. The authorization is not per work item: bootstrap links `~/.copilot` to `CONTENT_AI_SETTINGS_PATH/copilot-home`, so it survives DevContainer recreation unless the login expires, is revoked, or the persisted settings are removed.
+- The provider may finish a useful implementation response without creating the required `agent-result.json`. The CLI wrapper now detects this successful-but-incomplete condition and starts a second bounded Copilot request that only inspects the prepared context and current diff, returning the required JSON contract. A local parser stores that response as `agent-result.json`.
+- If the recovery response is not parseable JSON, the wrapper still writes a conservative `needs_manual_review` result. This prevents a silent/stuck waiting state and never grants a push green light without a machine-readable report that passes the existing dashboard validation.
+- Copilot CLI runs use `--mode=autopilot`, `--stream=off`, and a bounded continuation count. This prevents a non-interactive invocation from stopping after an intermediate progress message while preserving the existing restricted tool allow/deny policy.
+
+2026-08-20 WI 157946 end-to-end Copilot CLI validation:
+
+- Reran WI 157946 on `12.0/fix/157946-doc-is-is-not-possible-to-use-google-as-a-viable-ai-provider-rerun-20260820183525`. GitHub Copilot CLI read the captured work items and linked implementation PRs, updated only `docs/includes/docsync/dockerenvironmentvariables.md` and `docs/includes/docsync/generativeaimodels.md`, completed the MkDocs build, and wrote a green-light result.
+- A DevContainer source reload exposed a resume bug: persisted flows called the normal bulk-start path, which rewrote the plan and attempted a second agent launch against the agent's own uncommitted diff. Resume now schedules continuation with the saved plan and branch instead. The worker also treats an existing non-waiting result state as work to continue, including recovery from stale state metadata.
+- The local Markdown link check was incorrectly failing links that already existed in the base revision and are resolved by the portal's MkDocs configuration. It now compares current broken-link targets against `HEAD` and fails only newly introduced unresolved targets. WI 157946 passed `git diff --check` and the baseline-aware link validation; markdownlint was unavailable in the active container and was recorded as skipped.
+- The first dashboard commit attempt exposed that the container had no Git author identity. Configured the test worktree locally as `Luís Pereira <LuisPereira@criticalmanufacturing.com>` and recorded a follow-up: add Git author name/email to the Settings preflight and bootstrap, rather than discovering it during commit.
+- The completed run created commit `146c7ef25` (`Docs: update for WI 157946`), pushed the rerun branch, and created Draft PR `#91499`.
+
+2026-08-21 Automation observability and Draft PR report resilience:
+
+- Added a compact `Active Automation` panel at the beginning of the dashboard for visible work items with an active automatic flow. It polls persisted local state every 10 to 15 seconds without reloading TFS and reports the current durable pipeline activity.
+- The status message is derived from branch, agent, result, push, and Draft PR state, so it survives dashboard restarts and remains separate from the orchestration worker.
+- A missing concise agent summary no longer blocks a successful push from creating a Draft PR. The pipeline first starts one metadata-only agent repair that must rewrite `agent-result.json` without editing repository files. If no usable summary is available after that attempt, the Draft PR uses a safe summary from the final report or changed-file list and records the fallback in the event history.
+
+2026-08-21 Isolated worktree repair continuity:
+
+- Work item state persists the isolated `copilot_workspace_path` returned by the agent launcher. Item reconstruction must always prefer that persisted path over the portal's configured dispatcher workspace.
+- This is essential after an agent result needs repair: the repair prompt, instruction acknowledgement, Git preflight, and change validation must run in the work item's own worktree, never in `/app`.
+- A two-item concurrent rerun (WI 157946 and WI 157980) exposed the previous precedence bug. Both isolated worktrees and their agent results were correct, but state reconstruction replaced their paths with `/app`, causing a false branch-mismatch error and preventing the automatic repair from starting.
+- The bootstrap-managed `.agents/content-ai` tree is excluded from mandatory instruction acknowledgement. It remains available to agents, while the target repository `AGENTS.md` and its own `.agents` skills remain captured and must be acknowledged. This avoids blocking a valid result because of copied changelogs, readmes, and duplicate helper instructions.

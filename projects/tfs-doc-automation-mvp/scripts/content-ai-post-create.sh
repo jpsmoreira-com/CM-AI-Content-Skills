@@ -372,6 +372,42 @@ check_codex_cli() {
   fi
 }
 
+ensure_persisted_github_copilot_home() {
+  local persisted_home backup_path timestamp
+  persisted_home="$CONTENT_AI_SETTINGS_PATH/copilot-home"
+
+  if [ -L "$HOME/.copilot" ]; then
+    return 0
+  fi
+
+  mkdir -p "$persisted_home"
+  chmod 700 "$persisted_home" || true
+  if [ -d "$HOME/.copilot" ]; then
+    cp -a "$HOME/.copilot/." "$persisted_home/"
+    timestamp="$(date -u +"%Y%m%dT%H%M%SZ")"
+    backup_path="$HOME/.copilot.local-backup-$timestamp"
+    mv "$HOME/.copilot" "$backup_path"
+    log "Migrated the native GitHub Copilot CLI state to $persisted_home (backup: $backup_path)."
+  fi
+  ln -s "$persisted_home" "$HOME/.copilot"
+}
+
+ensure_github_copilot_cli() {
+  if [ "${TFS_AUTONOMOUS_INSTALL_GITHUB_COPILOT_CLI:-true}" != "true" ]; then
+    return 0
+  fi
+  if command -v copilot >/dev/null 2>&1; then
+    log "GitHub Copilot CLI is available."
+    return 0
+  fi
+  if ! command -v npm >/dev/null 2>&1; then
+    warn "GitHub Copilot CLI was not found and npm is unavailable. The dashboard provider preflight will report this if GitHub Copilot CLI is selected."
+    return 0
+  fi
+  log "Installing GitHub Copilot CLI into $NPM_CONFIG_PREFIX"
+  npm install -g @github/copilot
+}
+
 install_vscode_copilot_bridge() {
   local bridge_directory="$PIPELINE_PROJECT_PATH/vscode-copilot-bridge"
   local bridge_vsix="$bridge_directory/content-ai-pipeline-bridge-0.1.0.vsix"
@@ -506,6 +542,8 @@ write_runtime_files "$target_repository"
 sync_content_ai_assets
 prepare_docker_config
 check_codex_cli
+ensure_persisted_github_copilot_home
+ensure_github_copilot_cli
 install_vscode_copilot_bridge
 write_wrappers
 run_health_check
