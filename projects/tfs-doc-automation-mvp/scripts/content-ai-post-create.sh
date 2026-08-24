@@ -74,9 +74,57 @@ ensure_writable_directory() {
   fi
 }
 
+# Bring the runtime copy up to the commit this image ships.
+#
+# The runtime copy lives on the parent mount, outside the container, and survives
+# every rebuild. It used to be refreshed by pulling from GitHub before each start;
+# that made the branch, not the image, the thing that decided which version ran, and
+# it required network egress on every start. Now that the pull is gone, this is what
+# keeps the copy current — without it the copy is seeded once and never again, and the
+# tool stays pinned to whatever commit this machine first saw no matter how many
+# images ship afterwards.
+#
+# No stamp file is needed: the image seed and the copy made from it are both Git
+# checkouts, so their HEADs are directly comparable.
+refresh_project_copy() {
+  local image_sha runtime_sha
+
+  [ -d "$CONTENT_AI_IMAGE_REPO_PATH/.git" ] || return 0
+  image_sha="$(git -C "$CONTENT_AI_IMAGE_REPO_PATH" rev-parse HEAD 2>/dev/null || true)"
+  [ -n "$image_sha" ] || return 0
+
+  runtime_sha="$(git -C "$CONTENT_AI_REPO_PATH" rev-parse HEAD 2>/dev/null || true)"
+  if [ -z "$runtime_sha" ]; then
+    warn "Runtime copy at $CONTENT_AI_REPO_PATH is not a Git checkout, so it cannot be compared with the image. Remove it and re-run to take the image version ($image_sha)."
+    return 0
+  fi
+
+  [ "$image_sha" != "$runtime_sha" ] || return 0
+
+  log "Image ships $image_sha, runtime copy is at $runtime_sha - refreshing from the image"
+  # Fetched from the image seed rather than from GitHub: the image is the version
+  # authority, and this keeps container start working with no network at all.
+  # --update-shallow because both sides are depth-1 clones with no history in common,
+  # and reset --hard rather than pull --ff-only for the same reason - the seed commit
+  # is grafted and parentless, so a fast-forward can never apply.
+  # reset --hard replaces tracked files only. .env, config/*.local.json and data/ are
+  # gitignored, so the writer's settings and job history are left untouched.
+  if git -C "$CONTENT_AI_REPO_PATH" fetch -q --depth 1 --update-shallow \
+        "$CONTENT_AI_IMAGE_REPO_PATH" HEAD 2>/dev/null &&
+     git -C "$CONTENT_AI_REPO_PATH" reset -q --hard FETCH_HEAD 2>/dev/null; then
+    # Back onto a real branch: the runtime copy must not be left detached.
+    git -C "$CONTENT_AI_REPO_PATH" checkout -q -B "$CONTENT_AI_BRANCH" 2>/dev/null || true
+    log "Runtime copy refreshed to $image_sha"
+  else
+    # Deliberately not fatal: an out-of-date tool still works, a dead container does not.
+    warn "Could not refresh the runtime copy from the image seed. Continuing with $runtime_sha."
+  fi
+}
+
 ensure_project_copy() {
   if [ -f "$PIPELINE_PROJECT_PATH/requirements.txt" ]; then
     log "Using Content AI project at $CONTENT_AI_REPO_PATH"
+    refresh_project_copy
     return 0
   fi
 
