@@ -460,42 +460,11 @@ export CODEX_HOME="\${CODEX_HOME:-$CODEX_HOME}"
 export NPM_CONFIG_PREFIX="\${NPM_CONFIG_PREFIX:-$NPM_CONFIG_PREFIX}"
 export PATH="\$HOME/.local/bin:\$NPM_CONFIG_PREFIX/bin:/usr/local/share/nvm/current/bin:\$PATH"
 cd "$PIPELINE_PROJECT_PATH"
-sync_project() {
-  if [ ! -d "\$CONTENT_AI_REPO_PATH/.git" ]; then
-    echo "Content AI runtime copy is not a Git checkout at \$CONTENT_AI_REPO_PATH. Continuing with the image-provided version. Rebuild the image or rerun post-create from a Git-backed runtime copy to update the tool." >&2
-    return 0
-  fi
-  if ! git -C "\$CONTENT_AI_REPO_PATH" remote get-url origin >/dev/null 2>&1; then
-    echo "Content AI runtime copy has no origin remote. Continuing with the current local version." >&2
-    return 0
-  fi
-  echo "Syncing Content AI runtime copy before starting the pipeline..."
-  git -C "\$CONTENT_AI_REPO_PATH" fetch origin "\$CONTENT_AI_BRANCH" --prune
-  if [ -n "\$(git -C "\$CONTENT_AI_REPO_PATH" status --porcelain --untracked-files=all)" ]; then
-    if [ "\${CONTENT_AI_AUTO_STASH_ON_UPDATE:-true}" != "true" ]; then
-      git -C "\$CONTENT_AI_REPO_PATH" status --short --untracked-files=all >&2 || true
-      echo "Content AI runtime copy has local changes. Run 'tfs-autonomous-pipeline sync-project' after reviewing them, or set CONTENT_AI_AUTO_STASH_ON_UPDATE=true." >&2
-      return 1
-    fi
-    backup_dir="\${CONTENT_AI_SETTINGS_PATH:-$CONTENT_AI_SETTINGS_PATH}/backups"
-    timestamp="\$(date -u +"%Y%m%dT%H%M%SZ")"
-    mkdir -p "\$backup_dir"
-    git -C "\$CONTENT_AI_REPO_PATH" status --short --untracked-files=all > "\$backup_dir/content-ai-pre-wrapper-update-status-\$timestamp.txt" || true
-    git -C "\$CONTENT_AI_REPO_PATH" diff > "\$backup_dir/content-ai-pre-wrapper-update-worktree-\$timestamp.patch" || true
-    git -C "\$CONTENT_AI_REPO_PATH" diff --cached > "\$backup_dir/content-ai-pre-wrapper-update-index-\$timestamp.patch" || true
-    git -C "\$CONTENT_AI_REPO_PATH" stash push -u -m "content-ai auto-stash before wrapper update \$timestamp"
-    echo "Local Content AI runtime changes were stashed before starting the pipeline."
-  fi
-  git -C "\$CONTENT_AI_REPO_PATH" checkout "\$CONTENT_AI_BRANCH"
-  git -C "\$CONTENT_AI_REPO_PATH" pull --ff-only origin "\$CONTENT_AI_BRANCH"
-}
 case "\${1:-dashboard}" in
   dashboard)
-    sync_project
     exec "$PIPELINE_PYTHON" -m uvicorn main:app --host "\${TFS_AUTONOMOUS_PIPELINE_HOST:-0.0.0.0}" --port "\${TFS_AUTONOMOUS_PIPELINE_PORT:-$PIPELINE_PORT}"
     ;;
   worker)
-    sync_project
     exec "$PIPELINE_PYTHON" run_worker.py
     ;;
   stop)
@@ -504,9 +473,6 @@ case "\${1:-dashboard}" in
     ;;
   sync-assets)
     exec bash "$PIPELINE_PROJECT_PATH/scripts/sync-content-ai-assets.sh" "\${2:-$TARGET_WORKSPACE}"
-    ;;
-  sync-project)
-    sync_project
     ;;
   doctor)
     echo "Project: $PIPELINE_PROJECT_PATH"
@@ -519,7 +485,7 @@ print("Provider:", load_runtime_settings().get("copilot_provider"))
 PY
     ;;
   *)
-    echo "Usage: tfs-autonomous-pipeline {dashboard|worker|stop|sync-assets|sync-project|doctor}" >&2
+    echo "Usage: tfs-autonomous-pipeline {dashboard|worker|stop|sync-assets|doctor}" >&2
     exit 2
     ;;
 esac
