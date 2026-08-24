@@ -296,7 +296,15 @@ write_env_values(
         "DOC_AUTOMATION_SERVER_HOST": "0.0.0.0",
         "DOC_AUTOMATION_SERVER_PORT": pipeline_port,
         "DOC_AUTOMATION_SERVER_AUTO_PORT": "false",
-        "DOC_AUTOMATION_TFS_VERIFY_SSL": os.environ.get("CONTENT_AI_TFS_VERIFY_SSL", "false"),
+        # "true", matching DEFAULT_RUNTIME_SETTINGS in doc_automation/config.py. This
+        # line is written on every run and overwrites whatever is already in .env, so
+        # defaulting it to "false" did not merely start people off unverified — it
+        # reset TFS certificate verification to off at every container start, including
+        # for anyone who had turned it on from the dashboard Settings page. The images
+        # trust the CM root CA OS-wide (REQUESTS_CA_BUNDLE), so verification works
+        # against internal TFS without any extra configuration. Set
+        # CONTENT_AI_TFS_VERIFY_SSL=false to opt out deliberately.
+        "DOC_AUTOMATION_TFS_VERIFY_SSL": os.environ.get("CONTENT_AI_TFS_VERIFY_SSL", "true"),
         "DOC_AUTOMATION_TFS_CA_BUNDLE_PATH": os.environ.get("CONTENT_AI_TFS_CA_BUNDLE_PATH", ""),
         "DOC_AUTOMATION_EXECUTION_RUNTIME": "devcontainer",
         "DOC_AUTOMATION_FINAL_REPORTS_PATH": f"{target_workspace}/.automation-reports",
