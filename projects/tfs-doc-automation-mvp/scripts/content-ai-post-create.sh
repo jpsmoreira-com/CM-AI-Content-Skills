@@ -462,8 +462,23 @@ ensure_github_copilot_cli() {
     warn "GitHub Copilot CLI was not found and npm is unavailable. The dashboard provider preflight will report this if GitHub Copilot CLI is selected."
     return 0
   fi
-  log "Installing GitHub Copilot CLI into $NPM_CONFIG_PREFIX"
-  npm install -g @github/copilot
+  # Tracks latest, and is overridable. The CLI moves fast and authenticates against a
+  # seat the user owns, so a stale version strands them more often than a moving one
+  # breaks them. Set CONTENT_AI_COPILOT_CLI_VERSION to a specific version to pin it —
+  # worth doing if you need a reproducible container, since "latest" means the CLI can
+  # change under a user with no commit to point at.
+  local copilot_spec="@github/copilot@${CONTENT_AI_COPILOT_CLI_VERSION:-latest}"
+  log "Installing GitHub Copilot CLI ($copilot_spec) into $NPM_CONFIG_PREFIX"
+  # Not fatal. This script runs under `set -euo pipefail` and the container command is
+  # `content-ai-post-create && ... dashboard`, so a bare failure here takes the whole
+  # dashboard down. The CLI is needed only by the copilot_cli provider; every other
+  # provider, vscode_bridge included, works without it. Losing an optional provider
+  # must not cost the writer the tool, and it must not make an offline start
+  # impossible.
+  if ! npm install -g "$copilot_spec"; then
+    warn "Could not install GitHub Copilot CLI ($copilot_spec). Continuing without it; the dashboard provider preflight will report this if GitHub Copilot CLI is selected."
+    return 0
+  fi
 }
 
 install_vscode_copilot_bridge() {
