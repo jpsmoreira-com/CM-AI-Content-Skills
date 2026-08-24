@@ -123,18 +123,33 @@ clone_assets() {
 
   log "Fetching ${AI_ASSETS_REPO_URL} at ${AI_ASSETS_REF}"
 
+  # Fast path. --branch takes a branch or a tag, and the partial+sparse clone pulls
+  # only the asset tree. It cannot take a commit, so a pinned SHA fails here and
+  # falls through to the fetch below rather than being an error.
   if git clone --depth 1 --filter=blob:none --sparse --branch "$AI_ASSETS_REF" "$AI_ASSETS_REPO_URL" "$clone_dir" >/dev/null 2>&1; then
     if git -C "$clone_dir" sparse-checkout set "$AI_ASSETS_PATH" >/dev/null 2>&1; then
       return
     fi
 
-    log "Sparse checkout failed; retrying with a regular shallow clone"
+    log "Sparse checkout failed; retrying with a shallow fetch"
+  fi
+
+  # fetch resolves a branch, a tag or a commit, so this is the path a pinned SHA
+  # takes. It is the same shape the image build uses in
+  # devcontainer/metadata/_layer.dockerfile, which has always pinned by commit — the
+  # pipeline accepts a 40-character commit too, and this is what lets a writer pin
+  # to the same thing instead of only to a moving branch name.
+  rm -rf "$clone_dir"
+  mkdir -p "$clone_dir"
+  if git -C "$clone_dir" init -q . >/dev/null 2>&1 &&
+    git -C "$clone_dir" remote add origin "$AI_ASSETS_REPO_URL" >/dev/null 2>&1 &&
+    git -C "$clone_dir" fetch -q --depth 1 origin "$AI_ASSETS_REF" >/dev/null 2>&1 &&
+    git -C "$clone_dir" checkout -q FETCH_HEAD >/dev/null 2>&1; then
+    return
   fi
 
   rm -rf "$clone_dir"
-  if ! git clone --depth 1 --branch "$AI_ASSETS_REF" "$AI_ASSETS_REPO_URL" "$clone_dir" >/dev/null 2>&1; then
-    fail "Could not fetch repository, ref, or tag. Check AI_ASSETS_REPO_URL=${AI_ASSETS_REPO_URL} and AI_ASSETS_REF=${AI_ASSETS_REF}."
-  fi
+  fail "Could not fetch '${AI_ASSETS_REF}' from ${AI_ASSETS_REPO_URL}. It must be a branch, a tag, or a full 40-character commit the remote still has."
 }
 
 validate_source() {
