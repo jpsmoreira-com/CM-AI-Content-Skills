@@ -1,6 +1,7 @@
 ---
 name: tutorial-source-to-mkdocs
-description: 'Use for tutorial conversion requests such as converting DOCX to MkDocs, processing a tutorial package, reorganizing extracted tutorial pages, or combining Markdown, HTML, images, and video folders into an MkDocs-compatible structure validated against the repository style guide.'
+description: 'Converts tutorial source material (DOCX, Markdown, HTML exports, image and video folders) into a clean MkDocs page structure with navigation, relative links, and local assets, validated against the shared style guide. Use when asked to convert a DOCX or tutorial package to MkDocs, reorganize extracted tutorial pages, or embed a videos folder into tutorial pages.'
+license: BSD-3-Clause
 argument-hint: 'source files or folders, target docs path, and optional asset folders'
 ---
 
@@ -33,7 +34,7 @@ This skill is intended for tutorial conversions where the source can be one or m
 - One or more tutorial source files or folders
 - A target folder, usually under `docs/...`
 - Any related asset folders, such as videos or images, when available
-- The shared style guide bundled with the `style-guide-validator` skill
+- The shared style guide and terminology glossary installed beside this skill, at `../style-guide-validator/references/` (that is `.agents/skills/style-guide-validator/references/` in a portal)
 - Any repository-specific local guidance, if one exists
 
 ## Workflow

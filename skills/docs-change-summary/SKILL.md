@@ -1,6 +1,7 @@
 ---
 name: docs-change-summary
-description: 'Use when writing commit messages, PR titles, PR descriptions, or changelog summaries for MkDocs documentation changes and changelog feeds.'
+description: 'Drafts reader-focused commit messages, PR titles, PR descriptions, and changelog entries for MkDocs documentation changes. Use when the user asks for a commit message, PR text, release note, or changelog summary for documentation work.'
+license: BSD-3-Clause
 argument-hint: 'a diff, changed file list, or change summary, and the output type: commit, PR title, PR description, or changelog entry'
 ---
 

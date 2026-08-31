@@ -7,18 +7,18 @@ guidance below the managed block instead.
 
 ## Purpose
 
-This repository is a target workspace for Content AI automation and for content writers
-working with AI coding assistants. Assistants may inspect work item context, linked
-implementation pull requests, specifications, repository-local instructions, and the
-shared skills before proposing changes.
+This repository is a documentation portal maintained with the help of AI coding assistants.
+Assistants may inspect the repository, its local instructions, and the shared skills before
+proposing changes.
 
 ## Operating Rules
 
-- Keep changes focused on the requested work item and avoid unrelated refactors.
+- Keep changes focused on the requested work and avoid unrelated refactors.
 - Preserve technical meaning, product terminology, and existing repository structure.
 - Prefer minimal edits over rewrites unless the task explicitly requires a larger restructure.
-- Do not create pull requests, push branches, or change branch workflow from the agent. The dashboard owns branch, push, and PR operations.
-- Use the shared skills (`style-guide-validator`, `tutorial-source-to-mkdocs`, `docs-change-summary`) when one matches the requested work. They are installed by dotagents into `.agents/skills/` and, for the automation pipeline, under `.agents/content-ai/skills/`.
+- Do not create pull requests, push branches, or change the branch workflow unless the user explicitly asks for it.
+- Use the shared skills (`style-guide-validator`, `tutorial-source-to-mkdocs`, `docs-change-summary`) when one matches the requested work. They are installed under `.agents/skills/`.
+- For bulk review, delegate to the shared subagents `docs-style-reviewer` and `docs-link-auditor`. Both are read-only: they report, they never edit.
 
 ## Docs Markdown
 
@@ -31,12 +31,10 @@ Applies to Markdown under `docs/`.
 - For new tutorial or module pages, follow nearby examples for frontmatter, `.pages` files, and local asset placement.
 - Store images in a nearby `images/` folder and videos in a nearby `videos/` folder.
 - Preserve tables as Markdown when practical; if conversion would be lossy, call that out.
-- Follow the repository style guide (`style-guide-full.md`) when it exists; the `style-guide-validator` skill bundles the shared baseline.
+- Follow the shared style guide at `.agents/skills/style-guide-validator/references/style-guide-full.md` and the terminology glossary beside it, plus any repository-specific style rules given below this block.
 - When editing ordered lists, match the repository's existing Markdown linting convention.
 
 ## Protected And Generated Files
-
-Applies to `site/**`, `**/full_index.md`, and any other generated output or protected index.
 
 - Treat generated output and protected index files as explicit-request work.
 - Do not edit generated files unless the user explicitly asks for that exact file or generated output.
@@ -54,8 +52,6 @@ Applies to `mkdocs.yml` and `mkdocs-*.yml`.
 
 ## Python Automation
 
-Applies to `**/*.py`.
-
 - Keep edits focused and preserve current script entry points and CLI behavior unless the request says otherwise.
 - Avoid broad refactors in maintenance scripts and generators.
 - Preserve existing output shapes for generated documentation or index content unless explicitly requested.
@@ -68,7 +64,7 @@ When finishing, report:
 
 - files changed;
 - what changed and why;
-- specs, pull requests, or work item evidence used;
+- specifications, pull requests, or other sources used;
 - validation performed;
 - remaining reviewer concerns.
 <!-- cm-ai-content:managed:end -->

@@ -1,6 +1,7 @@
 ---
 name: style-guide-validator
-description: 'Use for style-guide validation requests such as reviewing documentation wording, checking Markdown consistency, validating a folder, or fixing documentation style deviations against a repository style guide.'
+description: 'Validates documentation wording and Markdown formatting against the shared style guide and terminology glossary, reporting must-fix, should-fix, and optional findings or applying minimal fixes. Use when asked to review, validate, check, or fix documentation style, wording, terminology, or Markdown consistency for a file, folder, or pasted text.'
+license: BSD-3-Clause
 argument-hint: 'target file, folder, or pasted text and optional mode: report or fix'
 ---
 
