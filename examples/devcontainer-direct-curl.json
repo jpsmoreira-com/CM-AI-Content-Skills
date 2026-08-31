@@ -1,0 +1,3 @@
+{
+  "postCreateCommand": "npx --yes @sentry/dotagents@3.0.1 --project install && bash <(curl -fsSL https://raw.githubusercontent.com/usulpt/CM-AI-Content-Skills/main/scripts/sync-repo-wiring.sh) ."
+}

@@ -1,0 +1,35 @@
+# dotagents manifest for this repository (dogfooding: installs our own skills into the
+# tool-native folders of whoever checks this repo out). Portals consume the published
+# skills from GitHub instead — see examples/agents.toml.
+#
+#   npx @sentry/dotagents --project install     # first time
+#   npx @sentry/dotagents --project sync        # after editing agents/ or skills/
+#
+# Known dotagents 3.0.1 limitation: because the subagent source is "path:." a repeated
+# `install` sees its own generated copy under .agents/agents/ and reports "Ambiguous
+# portable matches". Use `sync`, or `rm -rf .agents/agents` before re-running `install`.
+# Portals are unaffected (they consume the GitHub source).
+version = 1
+agents = ["claude", "codex", "vscode"]
+
+[[skills]]
+name = "docs-change-summary"
+source = "path:./skills/docs-change-summary"
+
+[[skills]]
+name = "style-guide-validator"
+source = "path:./skills/style-guide-validator"
+
+[[skills]]
+name = "tutorial-source-to-mkdocs"
+source = "path:./skills/tutorial-source-to-mkdocs"
+
+[[subagents]]
+name = "docs-style-reviewer"
+source = "path:."
+targets = ["claude", "codex"]
+
+[[subagents]]
+name = "docs-link-auditor"
+source = "path:."
+targets = ["claude", "codex"]

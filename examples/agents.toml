@@ -1,0 +1,28 @@
+# agents.toml for a documentation portal that consumes CM-AI-Content-Skills.
+# Commit this file. agents.lock and .agents/ are local state and are gitignored by dotagents.
+#
+# Pin the tag (`@v0.4.0`) to the release you want; bump it in a reviewed PR.
+version = 1
+agents = ["claude", "codex", "vscode"]
+
+[[skills]]
+name = "docs-change-summary"
+source = "usulpt/CM-AI-Content-Skills@v0.4.0"
+
+[[skills]]
+name = "style-guide-validator"
+source = "usulpt/CM-AI-Content-Skills@v0.4.0"
+
+[[skills]]
+name = "tutorial-source-to-mkdocs"
+source = "usulpt/CM-AI-Content-Skills@v0.4.0"
+
+[[subagents]]
+name = "docs-style-reviewer"
+source = "usulpt/CM-AI-Content-Skills@v0.4.0"
+targets = ["claude", "codex"]
+
+[[subagents]]
+name = "docs-link-auditor"
+source = "usulpt/CM-AI-Content-Skills@v0.4.0"
+targets = ["claude", "codex"]

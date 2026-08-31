@@ -2,8 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-AI_DIR="$ROOT_DIR/ai"
-MANIFEST="$AI_DIR/manifest.json"
+SKILLS_DIR="$ROOT_DIR/skills"
+AGENTS_DIR="$ROOT_DIR/agents"
+MANIFEST="$ROOT_DIR/manifest.json"
 
 failures=0
 
@@ -46,14 +47,14 @@ check_skill_metadata() {
 check_manifest_json() {
   if command -v jq >/dev/null 2>&1; then
     if ! jq empty "$MANIFEST" >/dev/null; then
-      error "ai/manifest.json is not valid JSON"
+      error "manifest.json is not valid JSON"
     fi
     return
   fi
 
   if command -v python3 >/dev/null 2>&1; then
     if ! python3 -m json.tool "$MANIFEST" >/dev/null; then
-      error "ai/manifest.json is not valid JSON"
+      error "manifest.json is not valid JSON"
     fi
     return
   fi
@@ -111,33 +112,33 @@ check_manifest_paths() {
 
   while IFS= read -r path; do
     [ -n "$path" ] || continue
-    if [ ! -e "$AI_DIR/$path" ]; then
-      error "Manifest entry points to missing path: ai/$path"
+    if [ ! -e "$ROOT_DIR/$path" ]; then
+      error "Manifest entry points to missing path: $path"
     fi
   done < <(manifest_values '.agents[].path')
 
   while IFS= read -r path; do
     [ -n "$path" ] || continue
-    if [ ! -d "$AI_DIR/$path" ]; then
-      error "Manifest skill entry is not a directory: ai/$path"
+    if [ ! -d "$ROOT_DIR/$path" ]; then
+      error "Manifest skill entry is not a directory: $path"
     fi
   done < <(manifest_values '.skills[].path')
 
   while IFS= read -r path; do
     [ -n "$path" ] || continue
-    if [ ! -f "$AI_DIR/$path" ]; then
-      error "Manifest instruction entry is not a file: ai/$path"
+    if [ ! -f "$ROOT_DIR/$path" ]; then
+      error "Manifest instruction entry is not a file: $path"
     fi
   done < <(manifest_values '.instructions[].path')
 
   while IFS= read -r path; do
     [ -n "$path" ] || continue
-    if [ ! -e "$AI_DIR/$path" ]; then
-      error "Manifest skill reference points to missing path: ai/$path"
+    if [ ! -e "$ROOT_DIR/$path" ]; then
+      error "Manifest skill reference points to missing path: $path"
     fi
   done < <(manifest_values '.skills[].references[]?')
 
-  for target in base codex copilot claude; do
+  for target in dotagents wiring; do
     if ! manifest_values '.install_targets[].name' | grep -Fx -- "$target" >/dev/null 2>&1; then
       error "Manifest is missing install target: $target"
     fi
@@ -146,23 +147,36 @@ check_manifest_paths() {
   while IFS= read -r -d '' skill_dir; do
     path="skills/$(basename "$skill_dir")"
     if ! manifest_has_path "$path" '.skills[].path'; then
-      error "Skill directory is missing from manifest: ai/$path"
+      error "Skill directory is missing from manifest: $path"
     fi
-  done < <(find "$AI_DIR/skills" -mindepth 1 -maxdepth 1 -type d -print0)
+    if ! grep -qF "path:./$path" "$ROOT_DIR/agents.toml"; then
+      error "Skill directory is missing from agents.toml: $path"
+    fi
+  done < <(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
 
   while IFS= read -r -d '' instruction_file; do
     path="instructions/$(basename "$instruction_file")"
     if ! manifest_has_path "$path" '.instructions[].path'; then
-      error "Instruction file is missing from manifest: ai/$path"
+      error "Instruction file is missing from manifest: $path"
     fi
-  done < <(find "$AI_DIR/instructions" -mindepth 1 -maxdepth 1 -type f -name '*.md' -print0)
+  done < <(find "$ROOT_DIR/instructions" -mindepth 1 -maxdepth 1 -type f -name '*.md' -print0)
 
   while IFS= read -r -d '' agent_file; do
     path="agents/$(basename "$agent_file")"
     if ! manifest_has_path "$path" '.agents[].path'; then
-      error "Agent file is missing from manifest: ai/$path"
+      error "Agent file is missing from manifest: $path"
     fi
-  done < <(find "$AI_DIR/agents" -mindepth 1 -maxdepth 1 -type f ! -name 'README.md' -print0)
+  done < <(find "$AGENTS_DIR" -mindepth 1 -maxdepth 1 -type f ! -name 'README.md' -print0)
+}
+
+check_managed_block() {
+  local baseline="$ROOT_DIR/instructions/AGENTS.md"
+  if ! head -n 1 "$baseline" | grep -qF '<!-- cm-ai-content:managed:start -->'; then
+    error "instructions/AGENTS.md must start with the managed-block start marker"
+  fi
+  if ! tail -n 1 "$baseline" | grep -qF '<!-- cm-ai-content:managed:end -->'; then
+    error "instructions/AGENTS.md must end with the managed-block end marker"
+  fi
 }
 
 check_secret_patterns() {
@@ -173,7 +187,7 @@ check_secret_patterns() {
       --exclude-dir=.git \
       --exclude='validate-ai-assets.sh' \
       '(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----|ghp_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|(password|passwd|secret|api[_-]?key|token)[[:space:]]*[:=][[:space:]]*["'\'']?[A-Za-z0-9_./+=-]{12,})' \
-      "$AI_DIR" 2>/dev/null || true
+      "$ROOT_DIR/docs" "$ROOT_DIR/examples" "$ROOT_DIR/instructions" "$SKILLS_DIR" "$AGENTS_DIR" "$ROOT_DIR/evals" "$ROOT_DIR/agents.toml" "$ROOT_DIR/manifest.json" "$ROOT_DIR/CHANGELOG.md" "$ROOT_DIR/CONTRIBUTING.md" "$ROOT_DIR/README.md" "$ROOT_DIR/AGENTS.md" 2>/dev/null || true
   )"
 
   if [ -n "$findings" ]; then
@@ -183,26 +197,38 @@ check_secret_patterns() {
 }
 
 main() {
-  require_path "$AI_DIR"
-  require_path "$AI_DIR/agents"
-  require_path "$AI_DIR/skills"
-  require_path "$AI_DIR/instructions"
-  require_path "$AI_DIR/examples"
+  require_path "$ROOT_DIR"
+  require_path "$AGENTS_DIR"
+  require_path "$SKILLS_DIR"
+  require_path "$ROOT_DIR/agents.toml"
+  require_path "$ROOT_DIR/instructions/AGENTS.md"
+  require_path "$ROOT_DIR/examples"
+  require_path "$ROOT_DIR/examples/agents.toml"
   require_path "$MANIFEST"
-  require_path "$AI_DIR/README.md"
-  require_path "$AI_DIR/CHANGELOG.md"
-  require_path "$AI_DIR/skills/style-guide-validator/references/style-guide-full.md"
-  require_path "$AI_DIR/docs/consuming-from-devcontainers.md"
-  require_path "$AI_DIR/docs/publishing-and-versioning.md"
-  require_path "$AI_DIR/docs/troubleshooting.md"
+  require_path "$ROOT_DIR/README.md"
+  require_path "$ROOT_DIR/CHANGELOG.md"
+  require_path "$SKILLS_DIR/style-guide-validator/references/style-guide-full.md"
+  require_path "$SKILLS_DIR/style-guide-validator/references/terminology-glossary.md"
+  require_path "$SKILLS_DIR/tutorial-source-to-mkdocs/references/golden-examples/README.md"
+  require_path "$ROOT_DIR/CONTRIBUTING.md"
+  require_path "$ROOT_DIR/evals/README.md"
+  require_path "$ROOT_DIR/evals/style-guide-validator/expected-findings.md"
+  require_path "$ROOT_DIR/evals/docs-link-auditor/expected-findings.md"
+  require_path "$ROOT_DIR/docs/decisions/README.md"
+  require_path "$ROOT_DIR/docs/getting-started.md"
+  require_path "$ROOT_DIR/docs/consuming-from-devcontainers.md"
+  require_path "$ROOT_DIR/docs/publishing-and-versioning.md"
+  require_path "$ROOT_DIR/docs/troubleshooting.md"
 
   check_manifest_json
 
-  if [ -d "$AI_DIR/skills" ]; then
+  if [ -d "$SKILLS_DIR" ]; then
     while IFS= read -r -d '' skill_dir; do
       check_skill_metadata "$skill_dir"
-    done < <(find "$AI_DIR/skills" -mindepth 1 -maxdepth 1 -type d -print0)
+    done < <(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
   fi
+
+  check_managed_block
 
   check_manifest_paths
   check_secret_patterns

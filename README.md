@@ -1,55 +1,55 @@
 # CM AI Content Skills
 
-Reusable public AI assets for devcontainers and development environments.
-
-This repository is the source of truth for shared skills, agents, instructions, examples, and installer scripts that can be reused across projects without copying repository-specific guidance into each consumer.
+Reusable public AI assets for the content-writing team: skills, subagents, and shared rules that documentation portals consume without copying repository-specific guidance into each one.
 
 ## Contents
 
-- `ai/` contains the canonical asset library.
-- `ai/skills/` contains shared skills for Codex, GitHub Copilot, and Claude Code.
-- `ai/agents/` contains reusable agent definitions.
-- `ai/instructions/` contains shared instruction and prompt files.
-- `ai/examples/` contains generic consumer examples.
-- `ai/manifest.json` provides the machine-readable asset inventory.
-- `scripts/install-ai-assets.sh` installs assets into a devcontainer or local development environment.
-- `scripts/validate-ai-assets.sh` validates the asset layout before publishing.
+- `skills/` — shared skills for Claude Code, Codex, and GitHub Copilot / VS Code (one directory per skill, with `SKILL.md`).
+- `agents/` — reusable subagents: `docs-style-reviewer` and `docs-link-auditor` for delegated, read-only bulk review.
+- `instructions/AGENTS.md` — the managed rules block synced into each consumer's root `AGENTS.md`.
+- `examples/` — consumer examples (`agents.toml`, devcontainer snippets, wrapper script).
+- `manifest.json` — machine-readable asset inventory.
+- `docs/` — consumer, publishing, and troubleshooting guides.
+- `agents.toml` — this repository's own [dotagents](https://github.com/getsentry/dotagents) manifest.
+- `scripts/sync-repo-wiring.sh` — installs the managed `AGENTS.md` block, a `CLAUDE.md` stub, and the style guide into a consumer.
+- `scripts/validate-ai-assets.sh` — validates the asset layout before publishing.
+- `scripts/install-ai-assets.sh` — **deprecated** Bash installer, kept for existing consumers until 0.5.0.
+- `evals/` — regression fixtures for skills and agents (maintainers only, not shipped).
+- `docs/decisions/` — decision records: the why behind rules.
+- `CONTRIBUTING.md` — how team knowledge flows back into this repository.
 
-See `ai/README.md` for the asset-library overview.
+Internal tools that consume these assets (such as the TFS documentation automation pipeline) live in the separate `CM-AI-Content-Tools` repository.
 
-## Install From a Devcontainer
+## How consumers use it
 
-Use the Bash installer from a devcontainer `postCreateCommand`:
+Skills and subagents are installed with dotagents. In a portal repository:
 
-```json
-{
-  "postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/usulpt/CM-AI-Content-Skills/main/scripts/install-ai-assets.sh | bash"
-}
+```bash
+npx @sentry/dotagents --project init
+npx @sentry/dotagents --project add usulpt/CM-AI-Content-Skills@v0.4.0
 ```
 
-By default, the installer writes the canonical asset copy to `$HOME/.config/cm-ai-content` and installs supported skills into user-level folders for Codex, GitHub Copilot, and Claude Code.
+That writes `agents.toml` (commit it) and links the skills into `.agents/skills/`, `.claude/skills/`, and the other tool folders (local state, gitignored).
 
-For pinned versions, targeted installs, and wrapper-script examples, see `ai/docs/consuming-from-devcontainers.md`.
+Shared rules are installed with the wiring script:
 
-## Work on Assets
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/usulpt/CM-AI-Content-Skills/v0.4.0/scripts/sync-repo-wiring.sh) .
+```
 
-When adding, removing, renaming, or changing shared assets:
+Wire both into the devcontainer `postCreateCommand` — see `examples/` and `docs/consuming-from-devcontainers.md`.
 
-1. Put reusable skills under `ai/skills/`.
-1. Put reusable agents under `ai/agents/`.
-1. Put reusable instructions under `ai/instructions/`.
-1. Put generic examples under `ai/examples/`.
-1. Update `ai/manifest.json`.
-1. Update `ai/CHANGELOG.md`.
+## Work on assets
+
+1. Put reusable skills under `skills/` and register them in `manifest.json` and `agents.toml`.
+1. Put reusable subagents under `agents/`.
+1. Put always-on rules in the managed block in `instructions/AGENTS.md`; put on-demand workflows in skills.
+1. Update `CHANGELOG.md`.
 1. Run validation before publishing.
 
 ```bash
 bash scripts/validate-ai-assets.sh
-```
-
-Run `shellcheck` on shell scripts when it is available:
-
-```bash
+npx @sentry/dotagents --project install && npx @sentry/dotagents --project doctor
 shellcheck scripts/*.sh
 ```
 
@@ -61,8 +61,9 @@ Use neutral placeholders such as `usulpt/CM-AI-Content-Skills`, `cm-ai-content`,
 
 ## Documentation
 
-- `ai/docs/consuming-from-devcontainers.md` explains consumer installation patterns.
-- `ai/docs/publishing-and-versioning.md` explains release and versioning expectations.
-- `ai/docs/troubleshooting.md` covers common installation issues.
+- `docs/getting-started.md` — end-to-end setup for maintainers, portals, and writers, with links to the dotagents and Agent Skills documentation.
+- `docs/consuming-from-devcontainers.md` — consumer installation patterns.
+- `docs/publishing-and-versioning.md` — release and versioning expectations.
+- `docs/troubleshooting.md` — common installation issues.
 
 Do not publish to npm, push to GitHub, or create Git tags unless that release action has been explicitly requested.

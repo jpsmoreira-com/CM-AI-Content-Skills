@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALLER_VERSION="0.1.0"
+INSTALLER_VERSION="0.2.0"
 
 AI_ASSETS_REPO_URL="${AI_ASSETS_REPO_URL:-https://github.com/usulpt/CM-AI-Content-Skills.git}"
 AI_ASSETS_REF="${AI_ASSETS_REF:-main}"
-AI_ASSETS_PATH="${AI_ASSETS_PATH:-ai}"
+AI_ASSETS_PATH="${AI_ASSETS_PATH:-.}"
 AI_INSTALL_DIR="${AI_INSTALL_DIR:-$HOME/.config/cm-ai-content}"
 AI_CACHE_DIR="${AI_CACHE_DIR:-$HOME/.cache/cm-ai-content-skills}"
 AI_INSTALL_TARGETS="${AI_INSTALL_TARGETS:-all}"
@@ -126,8 +126,14 @@ clone_assets() {
   # Fast path. --branch takes a branch or a tag, and the partial+sparse clone pulls
   # only the asset tree. It cannot take a commit, so a pinned SHA fails here and
   # falls through to the fetch below rather than being an error.
-  if git clone --depth 1 --filter=blob:none --sparse --branch "$AI_ASSETS_REF" "$AI_ASSETS_REPO_URL" "$clone_dir" >/dev/null 2>&1; then
-    if git -C "$clone_dir" sparse-checkout set "$AI_ASSETS_PATH" >/dev/null 2>&1; then
+  if [ "$AI_ASSETS_PATH" = "." ]; then
+    # The asset library is the whole repository root; a plain shallow clone is correct
+    # (sparse-checkout of "." would keep only top-level files).
+    if git clone --depth 1 --branch "$AI_ASSETS_REF" "$AI_ASSETS_REPO_URL" "$clone_dir" >/dev/null 2>&1; then
+      return
+    fi
+  elif git clone --depth 1 --filter=blob:none --sparse --branch "$AI_ASSETS_REF" "$AI_ASSETS_REPO_URL" "$clone_dir" >/dev/null 2>&1; then
+    if git -C "$clone_dir" sparse-checkout set "$AI_ASSETS_PATH" skills agents >/dev/null 2>&1; then
       return
     fi
 
@@ -152,6 +158,17 @@ clone_assets() {
   fail "Could not fetch '${AI_ASSETS_REF}' from ${AI_ASSETS_REPO_URL}. It must be a branch, a tag, or a full 40-character commit the remote still has."
 }
 
+# Since 0.4.0 all asset folders live at the repository root. Resolve each folder from
+# the asset path or its parent so pre-0.4.0 layouts (assets under ai/) still install.
+resolve_dir() {
+  local assets_dir="$1" name="$2"
+  if [ -d "$assets_dir/$name" ]; then
+    printf '%s\n' "$assets_dir/$name"
+  else
+    printf '%s\n' "$(dirname "$assets_dir")/$name"
+  fi
+}
+
 validate_source() {
   local assets_dir="$1"
 
@@ -160,8 +177,8 @@ validate_source() {
   fi
 
   for required_path in agents skills instructions examples; do
-    if [ ! -d "$assets_dir/$required_path" ]; then
-      fail "Required folder '$AI_ASSETS_PATH/$required_path' is missing."
+    if [ ! -d "$(resolve_dir "$assets_dir" "$required_path")" ]; then
+      fail "Required folder '$required_path' is missing from the fetched repository."
     fi
   done
 
@@ -179,29 +196,32 @@ install_assets() {
 
   mkdir -p "$AI_INSTALL_DIR"
 
-  copy_tree "$assets_dir/agents" "$AI_INSTALL_DIR/agents"
-  copy_tree "$assets_dir/skills" "$AI_INSTALL_DIR/skills"
-  copy_tree "$assets_dir/instructions" "$AI_INSTALL_DIR/instructions"
-  copy_tree "$assets_dir/examples" "$AI_INSTALL_DIR/examples"
+  copy_tree "$(resolve_dir "$assets_dir" agents)" "$AI_INSTALL_DIR/agents"
+  copy_tree "$(resolve_dir "$assets_dir" skills)" "$AI_INSTALL_DIR/skills"
+  copy_tree "$(resolve_dir "$assets_dir" instructions)" "$AI_INSTALL_DIR/instructions"
+  copy_tree "$(resolve_dir "$assets_dir" examples)" "$AI_INSTALL_DIR/examples"
   cp "$assets_dir/manifest.json" "$AI_INSTALL_DIR/manifest.json"
 }
 
 install_skill_targets() {
   local assets_dir="$1"
   local installed_targets=()
+  local skills_dir
+
+  skills_dir="$(resolve_dir "$assets_dir" skills)"
 
   if target_enabled codex; then
-    sync_owned_children "$assets_dir/skills" "$HOME/.agents/skills"
+    sync_owned_children "$skills_dir" "$HOME/.agents/skills"
     installed_targets+=("$HOME/.agents/skills")
   fi
 
   if target_enabled copilot; then
-    sync_owned_children "$assets_dir/skills" "$HOME/.copilot/skills"
+    sync_owned_children "$skills_dir" "$HOME/.copilot/skills"
     installed_targets+=("$HOME/.copilot/skills")
   fi
 
   if target_enabled claude; then
-    sync_owned_children "$assets_dir/skills" "$HOME/.claude/skills"
+    sync_owned_children "$skills_dir" "$HOME/.claude/skills"
     installed_targets+=("$HOME/.claude/skills")
   fi
 
@@ -211,6 +231,9 @@ install_skill_targets() {
 }
 
 main() {
+  log "DEPRECATED: this installer is kept for existing consumers only and will be removed in 0.5.0."
+  log "Migrate to dotagents: add an agents.toml to the repository and run 'npx @sentry/dotagents --project install'."
+  log "See docs/consuming-from-devcontainers.md in the CM-AI-Content-Skills repository."
   require_command git
 
   local clone_dir="$AI_CACHE_DIR/source"
