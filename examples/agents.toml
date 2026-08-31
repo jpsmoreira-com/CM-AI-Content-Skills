@@ -1,28 +1,28 @@
 # agents.toml for a documentation portal that consumes CM-AI-Content-Skills.
-# Commit this file. agents.lock and .agents/ are local state and are gitignored by dotagents.
+# Copy this file to the portal root and commit it.
 #
-# Pin the tag (`@v0.4.0`) to the release you want; bump it in a reviewed PR.
+# The `@v1.0.0` in each source is the version pin: bump it in a reviewed PR.
+# The wiring script (scripts/sync-repo-wiring.sh) reads the pin from this file so the
+# shared rules and the skills always come from the same release.
 version = 1
-agents = ["claude", "codex", "vscode"]
+agents = ["claude", "codex"]
 
+# All skills published by the release.
 [[skills]]
-name = "docs-change-summary"
-source = "usulpt/CM-AI-Content-Skills@v0.4.0"
+name = "*"
+source = "usulpt/CM-AI-Content-Skills@v1.0.0"
 
-[[skills]]
-name = "style-guide-validator"
-source = "usulpt/CM-AI-Content-Skills@v0.4.0"
-
-[[skills]]
-name = "tutorial-source-to-mkdocs"
-source = "usulpt/CM-AI-Content-Skills@v0.4.0"
-
+# Subagents must be listed individually.
 [[subagents]]
 name = "docs-style-reviewer"
-source = "usulpt/CM-AI-Content-Skills@v0.4.0"
+source = "usulpt/CM-AI-Content-Skills@v1.0.0"
 targets = ["claude", "codex"]
 
 [[subagents]]
 name = "docs-link-auditor"
-source = "usulpt/CM-AI-Content-Skills@v0.4.0"
+source = "usulpt/CM-AI-Content-Skills@v1.0.0"
 targets = ["claude", "codex"]
+
+# Only allow sources from the curated repository.
+[trust]
+github_repos = ["usulpt/CM-AI-Content-Skills"]

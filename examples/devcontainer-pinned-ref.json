@@ -1,6 +1,0 @@
-{
-  "postCreateCommand": "bash .devcontainer/sync-ai-assets.sh",
-  "remoteEnv": {
-    "AI_ASSETS_REF": "v0.4.0"
-  }
-}

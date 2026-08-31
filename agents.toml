@@ -1,35 +1,34 @@
-# dotagents manifest for this repository (dogfooding: installs our own skills into the
-# tool-native folders of whoever checks this repo out). Portals consume the published
-# skills from GitHub instead — see examples/agents.toml.
+# dotagents manifest for this repository. It dogfoods the published assets: whoever
+# checks this repo out gets the skills and subagents linked into the tool-native
+# folders. Portals consume the GitHub source instead — see examples/agents.toml.
 #
-#   npx @sentry/dotagents --project install     # first time
-#   npx @sentry/dotagents --project sync        # after editing agents/ or skills/
-#
-# Known dotagents 3.0.1 limitation: because the subagent source is "path:." a repeated
-# `install` sees its own generated copy under .agents/agents/ and reports "Ambiguous
-# portable matches". Use `sync`, or `rm -rf .agents/agents` before re-running `install`.
-# Portals are unaffected (they consume the GitHub source).
+#   npx --yes @sentry/dotagents@3.0.1 --project install   # after cloning or pulling
+#   npx --yes @sentry/dotagents@3.0.1 --project sync      # after editing skills/ or agents/
+#   npx --yes @sentry/dotagents@3.0.1 --project doctor    # health check
 version = 1
-agents = ["claude", "codex", "vscode"]
 
+# "claude" gets .claude/skills -> .agents/skills and .claude/agents/*.md.
+# "codex" gets .codex/agents/*.toml; Codex and VS Code read .agents/skills/ natively,
+# so no "vscode" target is needed.
+agents = ["claude", "codex"]
+
+# Every directory under skills/ with a SKILL.md, picked up automatically.
 [[skills]]
-name = "docs-change-summary"
-source = "path:./skills/docs-change-summary"
+name = "*"
+source = "path:."
+path = "skills"
 
-[[skills]]
-name = "style-guide-validator"
-source = "path:./skills/style-guide-validator"
-
-[[skills]]
-name = "tutorial-source-to-mkdocs"
-source = "path:./skills/tutorial-source-to-mkdocs"
-
+# Subagents have no wildcard. `path` points dotagents at the file directly, which keeps
+# repeated installs idempotent (a bare "path:." source would also match the generated
+# copy under .agents/agents/ and fail with "Ambiguous portable matches").
 [[subagents]]
 name = "docs-style-reviewer"
 source = "path:."
+path = "agents/docs-style-reviewer.md"
 targets = ["claude", "codex"]
 
 [[subagents]]
 name = "docs-link-auditor"
 source = "path:."
+path = "agents/docs-link-auditor.md"
 targets = ["claude", "codex"]
