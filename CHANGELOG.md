@@ -1,21 +1,24 @@
 # Changelog
 
-## 0.4.0 - 2026-08-30
+## 1.0.0 (unreleased)
 
-- Integrated the TFS pipeline with dotagents: `sync-content-ai-assets.sh` now also installs shared skills and subagents into target workspaces via `@sentry/dotagents` (honoring a committed portal `agents.toml`, otherwise generating a git-excluded one sourced from the synced `.agents/content-ai/` copy), so agents load skills from the standard `.agents/skills/` location.
-- Moved the TFS documentation automation pipeline (`projects/tfs-doc-automation-mvp`) to the new `CM-AI-Content-Tools` repository, the home for the Content Team's internal AI tools (decision record 0004). This repository now publishes only the shared assets; the pipeline consumes them from a sibling checkout via `CONTENT_AI_REPO_PATH`.
-- Flattened the layout: the former `ai/` folder is gone — `docs/`, `docs/decisions/`, `examples/`, `instructions/`, `manifest.json`, and `CHANGELOG.md` now live at the repository root (decision record 0003).
-- Adopted [dotagents](https://github.com/getsentry/dotagents) for distributing skills and subagents. Consumers declare them in a committed `agents.toml` pinned to a release tag; this repository ships its own `agents.toml` and an example under `examples/agents.toml`.
-- Moved `ai/skills/` to `skills/` and `ai/agents/` to `agents/` at the repository root so dotagents discovers them by convention.
-- Removed the Copilot `.instructions.md` and `.prompt.md` files. The two prompt files duplicated the `tutorial-source-to-mkdocs` and `style-guide-validator` skills; the `docs-change-summary` and `tutorial-conversion` instructions duplicated their skills; the four guardrail instructions (docs Markdown, protected/generated files, MkDocs config, Python automation) now live in the managed `AGENTS.md` block so they load unconditionally in every tool.
-- Reworked the shared rules (now `instructions/AGENTS.md`) into a managed block delimited by `<!-- cm-ai-content:managed:start/end -->` markers.
-- Rewrote `scripts/sync-repo-wiring.sh` to maintain that block inside a consumer's `AGENTS.md` (creating, prepending, or updating it while leaving everything outside the markers untouched), plus the `CLAUDE.md` stub and the style guide copy.
-- Manifest paths are now relative to the repository root; install targets are `dotagents` and `wiring`.
-- Deprecated `scripts/install-ai-assets.sh`. It still works against the new layout and prints a warning; it will be removed in 0.5.0.
-- Added an `argument-hint` to the `docs-change-summary` skill.
-- Added the first two shared subagents: `docs-style-reviewer` (bulk style review, read-only) and `docs-link-auditor` (link, asset, and `.pages` integrity sweep, read-only), distributed via dotagents `[[subagents]]` entries.
-- Added the knowledge-base scaffolding: a terminology glossary bundled with `style-guide-validator`, golden examples bundled with `tutorial-source-to-mkdocs`, decision records under `docs/decisions/`, eval fixtures under `evals/` for the validator skill and the link auditor agent, and a root `CONTRIBUTING.md` with the contribution loop ("corrected twice → PR it").
-- Added `docs/getting-started.md` — end-to-end setup guide for maintainers, portal repositories, and writers, with links to the dotagents, Agent Skills, and AGENTS.md documentation.
+First release of the dotagents-based contract. Breaking: nothing from 0.x is carried over.
+
+### Consumers get
+
+- Skills (`style-guide-validator`, `tutorial-source-to-mkdocs`, `docs-change-summary`) and subagents (`docs-style-reviewer`, `docs-link-auditor`) through [dotagents](https://github.com/getsentry/dotagents): copy `examples/agents.toml` (wildcard skills, explicit subagents, `[trust]`) pinned to `@v1.0.0`, run `npx --yes @sentry/dotagents@3.0.1 --project install`.
+- Always-on rules through `scripts/sync-repo-wiring.sh`, run remotely with `curl ... | bash -s -- .`. It fetches the managed block from the release pinned in the portal's `agents.toml`, maintains the block inside the portal's `AGENTS.md`, creates `CLAUDE.md` once, and appends the dotagents runtime entries to `.gitignore`. `--check` reports drift for CI.
+- `examples/devcontainer.json` wiring both steps into `postCreateCommand`.
+
+### Changed
+
+- Layout flattened to the repository root: `skills/`, `agents/`, `instructions/AGENTS.md`, `examples/`, `docs/`, `evals/`. The old `ai/` folder, the Copilot `.instructions.md`/`.prompt.md` files, `manifest.json`, and the Bash installer are gone (decision records 0002, 0003, 0005).
+- The managed block is portal-agnostic (no pipeline or dashboard rules) and points at the style guide installed with the skill; the wiring script no longer copies `style-guide-full.md` to the portal root.
+- Skill descriptions state what each skill does and when to use it; subagents drop the `tools:` field that dotagents does not propagate.
+- New subagents `docs-style-reviewer` and `docs-link-auditor`; terminology glossary and golden examples bundled with the skills; decision records, eval fixtures, and `CONTRIBUTING.md` added.
+- Validation is `scripts/validate.py` (structure, `agents.toml` ↔ disk, example pins ↔ changelog, links) plus GitHub Actions: CI on every PR (validate, dotagents install/doctor, shellcheck, markdownlint, wiring smoke tests) and a release workflow on `v*` tags that installs from the pushed tag and publishes release notes from this file.
+- The TFS documentation automation pipeline moved to the `CM-AI-Content-Tools` repository (decision record 0004).
+- Licensed under BSD 3-Clause (`LICENSE`); each skill declares `license: BSD-3-Clause`.
 
 ## 0.3.0 - 2026-06-30
 

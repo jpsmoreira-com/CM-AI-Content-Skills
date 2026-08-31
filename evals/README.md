@@ -1,6 +1,6 @@
 # Evals
 
-Regression fixtures for the shared skills and agents. Not shipped to consumers — maintainers run them before tagging a release, and whenever a skill, agent, the style guide, or the glossary changes.
+Regression fixtures for the shared skills and agents. Not shipped to consumers and not run in CI: the runs need a model, so maintainers run them by hand before tagging a release and whenever a skill, agent, the style guide, or the glossary changes.
 
 ## How to run
 
