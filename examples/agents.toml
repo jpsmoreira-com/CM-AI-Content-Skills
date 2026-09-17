@@ -1,0 +1,29 @@
+# agents.toml for a documentation portal that consumes CM-AI-Content-Skills.
+# Copy this file to the portal root and commit it.
+#
+# The `@v1.0.0` in each source is the version pin: bump it in a reviewed PR.
+# The wiring script (scripts/sync-repo-wiring.sh) reads the pin from this file so the
+# shared rules and the skills always come from the same release.
+version = 1
+agents = ["claude", "codex", "copilot"]
+
+# All skills published by the release.
+[[skills]]
+name = "*"
+source = "jpsmoreira-com/CM-AI-Content-Skills@v1.0.0"
+
+# Subagents must be listed individually. dotagents has no Copilot subagent format, so
+# these reach Claude Code and Codex only; Copilot gets the skills and the AGENTS.md rules.
+[[subagents]]
+name = "docs-style-reviewer"
+source = "jpsmoreira-com/CM-AI-Content-Skills@v1.0.0"
+targets = ["claude", "codex"]
+
+[[subagents]]
+name = "docs-link-auditor"
+source = "jpsmoreira-com/CM-AI-Content-Skills@v1.0.0"
+targets = ["claude", "codex"]
+
+# Only allow sources from the curated repository.
+[trust]
+github_repos = ["jpsmoreira-com/CM-AI-Content-Skills"]

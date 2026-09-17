@@ -1,68 +1,58 @@
 # CM AI Content Skills
 
-Reusable public AI assets for devcontainers and development environments.
+Reusable AI assets for the Critical Manufacturing content team: skills, subagents, and shared rules that documentation portals consume with [dotagents](https://github.com/getsentry/dotagents), pinned to a release tag.
 
-This repository is the source of truth for shared skills, agents, instructions, examples, and installer scripts that can be reused across projects without copying repository-specific guidance into each consumer.
+## What is published
 
-## Contents
+| Asset                                            | Where                    | How a portal gets it                                                          |
+| ------------------------------------------------ | ------------------------ | ----------------------------------------------------------------------------- |
+| Skills — ([Agent Skills](https://agentskills.io) | `skills/<name>/`         | dotagents `[[skills]]` (wildcard) — Claude Code, Codex, Copilot               |
+| Subagents — delegated, read-only bulk review     | `agents/<name>.md`       | dotagents `[[subagents]]` — Claude Code and Codex only                        |
+| Shared rules — always-on guardrails              | `instructions/AGENTS.md` | `scripts/sync-repo-wiring.sh`, as a managed block in the portal's `AGENTS.md` |
 
-- `ai/` contains the canonical asset library.
-- `ai/skills/` contains shared skills for Codex, GitHub Copilot, and Claude Code.
-- `ai/agents/` contains reusable agent definitions.
-- `ai/instructions/` contains shared instruction and prompt files.
-- `ai/examples/` contains generic consumer examples.
-- `ai/manifest.json` provides the machine-readable asset inventory.
-- `scripts/install-ai-assets.sh` installs assets into a devcontainer or local development environment.
-- `scripts/validate-ai-assets.sh` validates the asset layout before publishing.
+| Name                        | Kind     | Purpose                                                                          |
+| --------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `style-guide-validator`     | skill    | Validate wording and MD against the shared style guide and terminology glossary. |
+| `tutorial-source-to-mkdocs` | skill    | Convert DOCX / Markdown / HTML tutorial packages with media into MkDocs pages.   |
+| `docs-change-summary`       | skill    | Draft reader-focused commit messages, PR text, and changelog entries.            |
+| `docs-style-reviewer`       | subagent | Bulk style review of a folder, PR, or converted tutorial. Read-only.             |
+| `docs-link-auditor`         | subagent | Broken links, missing/orphaned assets, `.pages` mismatches. Read-only.           |
 
-See `ai/README.md` for the asset-library overview.
+## Use it in a portal
 
-## Install From a Devcontainer
-
-Use the Bash installer from a devcontainer `postCreateCommand`:
-
-```json
-{
-  "postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/usulpt/CM-AI-Content-Skills/main/scripts/install-ai-assets.sh | bash"
-}
-```
-
-By default, the installer writes the canonical asset copy to `$HOME/.config/cm-ai-content` and installs supported skills into user-level folders for Codex, GitHub Copilot, and Claude Code.
-
-For pinned versions, targeted installs, and wrapper-script examples, see `ai/docs/consuming-from-devcontainers.md`.
-
-## Work on Assets
-
-When adding, removing, renaming, or changing shared assets:
-
-1. Put reusable skills under `ai/skills/`.
-1. Put reusable agents under `ai/agents/`.
-1. Put reusable instructions under `ai/instructions/`.
-1. Put generic examples under `ai/examples/`.
-1. Update `ai/manifest.json`.
-1. Update `ai/CHANGELOG.md`.
-1. Run validation before publishing.
+From the portal root (Node.js 20+ required):
 
 ```bash
-bash scripts/validate-ai-assets.sh
+cp <this repo>/examples/agents.toml agents.toml                                   # 1. declare, pinned to a release
+npx --yes @sentry/dotagents@3.1.0 --project install                               # 2. skills + subagents -> .agents/, .claude/, .codex/
+curl -fsSL https://raw.githubusercontent.com/jpsmoreira-com/CM-AI-Content-Skills/v1.0.0/scripts/sync-repo-wiring.sh | bash -s -- .   # 3. rules
 ```
 
-Run `shellcheck` on shell scripts when it is available:
+Commit `agents.toml`, `AGENTS.md`, `CLAUDE.md`, and `.gitignore`. In a devcontainer, `examples/devcontainer.json` runs steps 2–3 on every rebuild. Full contract: [docs/consuming.md](docs/consuming.md). Day-to-day use of the skills: [docs/using-the-skills.md](docs/using-the-skills.md).
+
+## Work on it
 
 ```bash
-shellcheck scripts/*.sh
+npx --yes @sentry/dotagents@3.1.0 --project install   # link the local assets into the tool folders
+python3 scripts/validate.py                           # structural validation (what CI runs)
+bash scripts/test-wiring.sh                           # wiring script smoke tests
+npx --yes @sentry/dotagents@3.1.0 --project sync      # after editing skills/ or agents/
 ```
 
-## Public Content Rules
+Releases are git tags; see [docs/releasing.md](docs/releasing.md). How knowledge flows back into this repository: [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Keep all shared content safe to publish. Do not include secrets, internal URLs, customer data, private credentials, proprietary information, or environment-specific tokens.
+## Repository map
 
-Use neutral placeholders such as `usulpt/CM-AI-Content-Skills`, `cm-ai-content`, and `example`.
+- `skills/`, `agents/`, `instructions/AGENTS.md` — the published assets (above).
+- `agents.toml` — this repository's own dotagents manifest (dogfooding the assets).
+- `examples/` — `agents.toml` and `devcontainer.json` for portals.
+- `scripts/` — `sync-repo-wiring.sh` (consumer), `validate.py` and `test-wiring.sh` (maintainer/CI).
+- `docs/` — consuming, using, releasing, troubleshooting; `docs/decisions/` — why things are the way they are.
+- `evals/` — regression fixtures for the skills and subagents (maintainers only, not shipped).
+- `.github/` — CI on every PR, release workflow on every `v*` tag.
 
-## Documentation
+Internal tools that consume these assets (such as the TFS documentation automation pipeline) live in the separate `CM-AI-Content-Tools` repository.
 
-- `ai/docs/consuming-from-devcontainers.md` explains consumer installation patterns.
-- `ai/docs/publishing-and-versioning.md` explains release and versioning expectations.
-- `ai/docs/troubleshooting.md` covers common installation issues.
+## License
 
-Do not publish to npm, push to GitHub, or create Git tags unless that release action has been explicitly requested.
+[BSD 3-Clause](LICENSE), the same license as the other public Critical Manufacturing repositories.

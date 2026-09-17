@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  DOTAGENTS_VERSION: 3.0.1
+
+jobs:
+  release:
+    name: Verify tag and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Structural validation
+        run: python3 scripts/validate.py
+
+      - name: Tag matches CHANGELOG.md and the example pin
+        run: |
+          tag="$GITHUB_REF_NAME"
+          version="${tag#v}"
+          grep -qE "^## ${version//./\\.}( |$)" CHANGELOG.md \
+            || { echo "CHANGELOG.md has no '## $version' heading" >&2; exit 1; }
+          grep -qF "CM-AI-Content-Skills@${tag}\"" examples/agents.toml \
+            || { echo "examples/agents.toml does not pin $tag" >&2; exit 1; }
+          grep -qF "\"AI_ASSETS_REF\": \"${tag}\"" examples/devcontainer.json \
+            || { echo "examples/devcontainer.json does not pin $tag" >&2; exit 1; }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Consumer smoke test from the pushed tag
+        run: |
+          tag="$GITHUB_REF_NAME"
+          portal="$(mktemp -d)"
+          # Same shape as examples/agents.toml, pointed at the repository that pushed the tag.
+          sed -e "s#usulpt/CM-AI-Content-Skills#${GITHUB_REPOSITORY}#g" examples/agents.toml > "$portal/agents.toml"
+          (
+            cd "$portal"
+            git init -q
+            npx --yes "@sentry/dotagents@${DOTAGENTS_VERSION}" --project install
+            npx --yes "@sentry/dotagents@${DOTAGENTS_VERSION}" --project doctor
+            test -f .agents/skills/style-guide-validator/SKILL.md
+            test -f .claude/agents/docs-style-reviewer.md
+            curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${tag}/scripts/sync-repo-wiring.sh" \
+              | AI_ASSETS_REPO="$GITHUB_REPOSITORY" bash -s -- .
+            AI_ASSETS_REPO="$GITHUB_REPOSITORY" bash scripts/sync-repo-wiring.sh --check . 2>/dev/null \
+              || curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${tag}/scripts/sync-repo-wiring.sh" \
+              | AI_ASSETS_REPO="$GITHUB_REPOSITORY" bash -s -- --check .
+          )
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            /^## / { if (found) exit; found = ($2 == v) ; next }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body_path: release-notes.md

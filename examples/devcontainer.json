@@ -1,0 +1,9 @@
+{
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "remoteEnv": {
+    "AI_ASSETS_REF": "v1.0.0"
+  },
+  "postCreateCommand": "npx --yes @sentry/dotagents@3.1.0 --project install && curl -fsSL \"https://raw.githubusercontent.com/jpsmoreira-com/CM-AI-Content-Skills/${AI_ASSETS_REF}/scripts/sync-repo-wiring.sh\" | bash -s -- ."
+}

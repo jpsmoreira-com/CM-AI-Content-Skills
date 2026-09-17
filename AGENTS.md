@@ -1,35 +1,21 @@
 # AGENTS.md
 
-## Purpose
+Rules for agents working on this repository. What it is and how it is consumed: `README.md`. How knowledge gets in and how releases go out: `CONTRIBUTING.md`, `docs/releasing.md`.
 
-This repository is the source of truth for reusable public AI assets that can be installed into devcontainers and other development environments.
+## Layout
 
-## Asset Layout
+- `skills/<name>/SKILL.md` — a skill; `name` equals the directory name, `description` says what it does and when to use it. Extra material goes in `references/`. Picked up automatically by the wildcard in `agents.toml`.
+- `agents/<name>.md` — a subagent; `name` equals the file name. Only `name`, `description`, and the body survive distribution, so constraints live in the body. Each one needs a `[[subagents]]` entry in `agents.toml` (`source = "path:."`, `path = "agents/<name>.md"`) and in `examples/agents.toml`.
+- `instructions/AGENTS.md` — the managed rules block. It must start with `<!-- cm-ai-content:managed:start -->` and end with `<!-- cm-ai-content:managed:end -->`; it is loaded on every turn in every portal, so keep it short and portal-agnostic.
+- `examples/` — the consumer contract (`agents.toml`, `devcontainer.json`), pinned to the next release tag.
+- `scripts/` — `sync-repo-wiring.sh` (shipped to consumers), `validate.py` and `test-wiring.sh` (maintainers and CI).
+- `docs/decisions/` — one record per decision, never rewritten; supersede with a new record.
+- `evals/` — fixtures with deliberate problems; never "fix" them.
 
-- Put reusable shared skills for Codex, GitHub Copilot, and Claude Code under `ai/skills/`.
-- Each skill must be a directory with a valid `SKILL.md`.
-- Each `SKILL.md` must include at least `name` and `description` metadata.
-- Put reusable agent files under `ai/agents/`.
-- Put reusable instruction files under `ai/instructions/`.
-- Put generic examples under `ai/examples/`.
-- Keep repository-specific project instructions separate from reusable shared instructions.
+## Rules
 
-## Public Content Rules
-
-- Do not include secrets, internal URLs, customer data, private credentials, proprietary information, or environment-specific tokens.
-- Keep examples generic and safe to publish.
-- Prefer neutral placeholders such as `usulpt/CM-AI-Content-Skills`, `cm-ai-content`, and `example`.
-- Preserve compatibility for existing consumers whenever possible.
-
-## Change Management
-
-- Update `ai/manifest.json` when adding, removing, renaming, or changing assets.
-- Update `ai/CHANGELOG.md` for every asset-library change.
-- Prefer backward-compatible changes to skills, agents, instructions, and installer behavior.
-- Use Git tags for stable releases.
-
-## Validation
-
-- Run `scripts/validate-ai-assets.sh` before publishing changes.
-- Run `shellcheck` on shell scripts when it is available.
-- Do not publish to npm, push to GitHub, or create tags unless explicitly requested.
+- Public content only: no secrets, internal URLs, customer data, or proprietary details. `jpsmoreira-com/CM-AI-Content-Skills` is the published source.
+- The git tag is the only version. `CHANGELOG.md` gets a line for every change under the next release heading; the examples pin that release.
+- Do not add a manifest, an installer, or per-tool prompt/instruction files: skills and subagents ship through dotagents, guardrails through the managed block.
+- Before finishing: `python3 scripts/validate.py`; `bash scripts/test-wiring.sh` when the wiring script changed; `npx --yes @sentry/dotagents@3.1.0 --project sync` after editing `skills/` or `agents/`.
+- Do not push, tag, or publish unless explicitly asked.
