@@ -40,4 +40,5 @@ Skills follow the same pattern under `.apm/skills/<name>/SKILL.md`; the wildcard
 - Prefer editing an existing asset over adding a near-duplicate. Five maintained assets beat twenty stale ones.
 - Every rule should say *why* when the why isn't obvious — that's what makes it stick, for people and for models.
 - Skill descriptions say what the skill does *and* when to use it; subagent constraints ("read-only") go in the body.
+- Names are part of the contract and must stay specific (`style-guide-validator`, not `validator`): a portal may install other packages alongside this one, and APM handles cross-package name clashes badly (see `docs/consuming.md`).
 - The guardrails instruction never sets `applyTo`: it must load on every turn in every harness, and `validate.py` enforces that.

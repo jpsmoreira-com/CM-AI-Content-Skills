@@ -93,6 +93,22 @@ description: Rules for this portal's build pipeline
 
 Codex reads the guardrails only from `AGENTS.md`, so `apm compile` is not optional.
 
+## Using more than one package
+
+`dependencies.apm` is a list, and any git repository is a package, so a portal can combine this one with others:
+
+```yaml
+dependencies:
+  apm:
+    - jpsmoreira-com/CM-AI-Content-Skills#v1.0.0
+    - some-org/other-skills#v3.2.0
+  mcp: []
+```
+
+Every package's skills, subagents, and instructions deploy side by side; instructions from all of them compile into `AGENTS.md`. `apm deps list` shows what each package contributed.
+
+Names must be unique across every package a portal declares. When two packages ship a skill with the same name, APM 0.31.0 deploys one package's copy to `.agents/skills/` and the other's to `.claude/skills/`, so Copilot and Claude Code run different skills under one name; the only signal is a misleading `1 file skipped -- local files exist` line at install time and a `Drift detected` failure from `apm audit --ci`. Keep the audit in portal CI, and drop or rename the clashing package rather than forcing the install.
+
 ## Updating to a new release
 
 1. Change the `#vX.Y.Z` in `apm.yml` to the new tag.

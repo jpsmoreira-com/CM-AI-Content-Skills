@@ -21,6 +21,7 @@ First release of the APM-based contract. Breaking: nothing from 0.x is carried o
 - The devcontainer needs Python 3.10+ for the APM CLI; Node.js is not required.
 - The TFS documentation automation pipeline moved to the `CM-AI-Content-Tools` repository (decision record 0004).
 - Licensed under BSD 3-Clause (`LICENSE`); each skill declares `license: BSD-3-Clause`.
+- `docs/consuming.md` documents installing other packages alongside this one and the cross-package name-clash hazard in APM 0.31.0.
 
 ## 0.3.0 - 2026-06-30
 

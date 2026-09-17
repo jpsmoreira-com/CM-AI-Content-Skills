@@ -52,7 +52,13 @@ Informational. Claude Code loads the guardrails from `.claude/rules/cm-ai-conten
 
 ## `apm audit --ci` reports drift
 
-A deployed file differs from what the lockfile recorded — usually a hand edit to an installed copy (for example `.github/instructions/cm-ai-content.instructions.md`). Installed files are overwritten on the next install; put the change in the portal's own `.apm/instructions/` instead, or in this repository if every portal should get it. `apm install` restores the recorded content.
+### After adding a second package
+
+Two packages ship a primitive with the same name. APM deploys different copies to different harness folders instead of picking one, and the lockfile records both. Rename or drop the clashing package; `apm install --force` only hides the problem.
+
+### After editing an installed file
+
+A deployed file differs from what the lockfile recorded, usually a hand edit to an installed copy (for example `.github/instructions/cm-ai-content.instructions.md`). Installed files are overwritten on the next install; put the change in the portal's own `.apm/instructions/` instead, or in this repository if every portal should get it. `apm install` restores the recorded content.
 
 ## `postCreateCommand` failure
 
