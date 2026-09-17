@@ -19,6 +19,7 @@ First release of the APM-based contract. Breaking: nothing from 0.3.0 is carried
 - New subagents `docs-style-reviewer` and `docs-link-auditor`; terminology glossary and golden examples bundled with the skills; decision records, eval fixtures, and `CONTRIBUTING.md` added.
 - Validation is `scripts/validate.py` (`.apm/` layout, `apm.yml` ↔ disk, the unconditional guardrails, release pin ↔ changelog ↔ examples, one APM CLI version, links) and `scripts/smoke-portal.sh` (every primitive reaches every harness), plus GitHub Actions: CI on every PR (validate, `apm compile --validate`, dogfood install and audit, smoke test, markdownlint) and a release workflow on `v*` tags that installs from the pushed tag with `owner/repo#vX.Y.Z` and publishes release notes from this file.
 - The devcontainer needs Python 3.10+ for the APM CLI; Node.js is not required.
+- `docs-link-auditor` describes the link forms it checks without writing them as literal Markdown links, so `apm compile` in a consuming portal no longer reports two spurious "Referenced file not found: path" warnings.
 - The TFS documentation automation pipeline moved to the `CM-AI-Content-Tools` repository (decision record 0004).
 - Licensed under BSD 3-Clause (`LICENSE`); each skill declares `license: BSD-3-Clause`.
 - `docs/consuming.md` documents portal-authored skills, subagents, and rules in the portal's own `.apm/`, installing other packages alongside this one, and the name-clash hazards in APM 0.31.0.
