@@ -2,22 +2,23 @@
 
 ## 1.0.0 (unreleased)
 
-First release of the dotagents-based contract. Breaking: nothing from 0.x is carried over.
+First release of the APM-based contract. Breaking: nothing from 0.x is carried over. Portals consume one package with [APM](https://github.com/microsoft/apm), Microsoft's Agent Package Manager (decision record 0007). dotagents was adopted and replaced before this release shipped (decision records 0002, 0006, 0007); a portal set up from `main` in between follows the migration section in `docs/consuming.md`.
 
 ### Consumers get
 
-- Skills (`style-guide-validator`, `tutorial-source-to-mkdocs`, `docs-change-summary`) and subagents (`docs-style-reviewer`, `docs-link-auditor`) through [dotagents](https://github.com/getsentry/dotagents): copy `examples/agents.toml` (wildcard skills, explicit subagents, `[trust]`) pinned to `@v1.0.0`, run `npx --yes @sentry/dotagents@3.1.0 --project install`.
-- Three declared tools: `agents = ["claude", "codex", "copilot"]`, on dotagents 3.1.0 (the first version with a GitHub Copilot target). Copilot reads `.agents/skills/` natively, so the skills and the managed `AGENTS.md` block reach it; the two subagents remain Claude Code and Codex only, because dotagents has no Copilot subagent format (decision record 0006).
-- Always-on rules through `scripts/sync-repo-wiring.sh`, run remotely with `curl ... | bash -s -- .`. It fetches the managed block from the release pinned in the portal's `agents.toml`, maintains the block inside the portal's `AGENTS.md`, creates `CLAUDE.md` once, and appends the dotagents runtime entries to `.gitignore`. `--check` reports drift for CI.
-- `examples/devcontainer.json` wiring both steps into `postCreateCommand`.
+- Skills (`style-guide-validator`, `tutorial-source-to-mkdocs`, `docs-change-summary`), subagents (`docs-style-reviewer`, `docs-link-auditor`), and the always-on guardrails through one `apm.yml` pinned to `#v1.0.0`: `apm install` deploys them, `apm compile` folds the guardrails, together with any portal-local instructions, into `AGENTS.md`.
+- Subagents in GitHub Copilot (`.github/agents/`), Claude Code (`.claude/agents/`), and Codex (`.codex/agents/`).
+- Guardrails delivered natively per harness: `.github/instructions/` and `.github/copilot-instructions.md` for Copilot, `.claude/rules/` for Claude Code, compiled `AGENTS.md` for Codex.
+- A lockfile with content hashes (`apm.lock.yaml`), `apm install --frozen` as the CI gate, `apm audit --ci` for drift and hidden-Unicode scanning, and `examples/devcontainer.json` wiring it all into `postCreateCommand`.
 
 ### Changed
 
-- Layout flattened to the repository root: `skills/`, `agents/`, `instructions/AGENTS.md`, `examples/`, `docs/`, `evals/`. The old `ai/` folder, the Copilot `.instructions.md`/`.prompt.md` files, `manifest.json`, and the Bash installer are gone (decision records 0002, 0003, 0005).
-- The managed block is portal-agnostic (no pipeline or dashboard rules) and points at the style guide installed with the skill; the wiring script no longer copies `style-guide-full.md` to the portal root.
-- Skill descriptions state what each skill does and when to use it; subagents drop the `tools:` field that dotagents does not propagate.
+- Layout: the package lives under `.apm/` (`skills/`, `agents/<name>.agent.md`, `instructions/cm-ai-content.instructions.md` with no `applyTo`, so it loads unconditionally) with `apm.yml` at the root. The old `ai/` folder, the Copilot `.instructions.md`/`.prompt.md` files, `manifest.json`, and the Bash installer are gone (decision records 0002, 0003, 0005, 0007).
+- The guardrails are portal-agnostic (no pipeline or dashboard rules) and point at the style guide installed with the skill. Portal-specific rules are the portal's own `.apm/instructions/*.instructions.md`.
+- Skill descriptions state what each skill does and when to use it; subagent constraints live in the body.
 - New subagents `docs-style-reviewer` and `docs-link-auditor`; terminology glossary and golden examples bundled with the skills; decision records, eval fixtures, and `CONTRIBUTING.md` added.
-- Validation is `scripts/validate.py` (structure, `agents.toml` ↔ disk, example pins ↔ changelog, links) plus GitHub Actions: CI on every PR (validate, dotagents install/doctor, shellcheck, markdownlint, wiring smoke tests) and a release workflow on `v*` tags that installs from the pushed tag and publishes release notes from this file.
+- Validation is `scripts/validate.py` (`.apm/` layout, `apm.yml` ↔ disk, the unconditional guardrails, release pin ↔ changelog ↔ examples, one APM CLI version, links) and `scripts/smoke-portal.sh` (every primitive reaches every harness), plus GitHub Actions: CI on every PR (validate, `apm compile --validate`, dogfood install and audit, smoke test, markdownlint) and a release workflow on `v*` tags that installs from the pushed tag with `owner/repo#vX.Y.Z` and publishes release notes from this file.
+- The devcontainer needs Python 3.10+ for the APM CLI; Node.js is not required.
 - The TFS documentation automation pipeline moved to the `CM-AI-Content-Tools` repository (decision record 0004).
 - Licensed under BSD 3-Clause (`LICENSE`); each skill declares `license: BSD-3-Clause`.
 

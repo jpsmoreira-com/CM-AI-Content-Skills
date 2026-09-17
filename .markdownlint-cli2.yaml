@@ -5,12 +5,16 @@ config:
   default: true
   MD013: false # line length: prose is wrapped by the editor
   MD024: { siblings_only: true } # duplicate headings allowed across sections (changelog, decision records)
-  MD033: false # inline HTML (managed-block markers)
-  MD041: false # first line need not be a heading (managed block, golden examples)
+  MD033: false # inline HTML in golden examples
+  MD041: false # first line need not be a heading (frontmatter, golden examples)
 ignores:
   - "evals/**" # fixtures with deliberate problems
-  - "skills/style-guide-validator/references/style-guide-full.md" # the style guide is content, not repo docs
-  - ".agents/**"
+  - ".apm/skills/style-guide-validator/references/style-guide-full.md" # the style guide is content, not repo docs
+  - ".agents/**" # local dogfood deployment (gitignored)
   - ".claude/**"
   - ".codex/**"
+  - ".github/agents/**"
+  - ".github/instructions/**"
+  - ".github/copilot-instructions.md"
+  - "apm_modules/**"
   - "node_modules/**"

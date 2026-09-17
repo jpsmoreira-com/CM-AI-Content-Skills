@@ -1,55 +1,59 @@
 # Troubleshooting
 
-## dotagents
+## Installing the CLI
 
-### Skills went to `~/.agents` instead of the repository
+### `apm: command not found`
 
-`--project` was omitted; dotagents defaults to the global scope. Re-run with `--project`, and remove the global entries with `npx --yes @sentry/dotagents@3.1.0 remove <name>` if needed.
+The installer puts `apm` in `~/.local/bin`, which must be on `PATH`. `examples/devcontainer.json` sets it through `remoteEnv`; in a shell, `export PATH="$HOME/.local/bin:$PATH"`.
 
-### `Failed to resolve skill ... not found`
+### Python version errors from the installer
 
-The `@tag` in `agents.toml` does not exist, or the tag predates the asset. Check: `git ls-remote --tags https://github.com/jpsmoreira-com/CM-AI-Content-Skills.git`. Release notes list what each tag contains.
+The APM CLI needs Python 3.10+. In a devcontainer, start from `mcr.microsoft.com/devcontainers/python:3.12` (as the example does) or add the Python feature.
 
-### Skills missing or symlinks broken
+## `apm install`
 
-`install` fetches missing skills; `sync` repairs the symlinks and generated tool files; `doctor` reports what is wrong (`doctor --fix` only repairs `.gitignore` entries and tracked generated files).
+### `Invalid APM dependency ... Invalid shorthand port`
 
-```bash
-npx --yes @sentry/dotagents@3.1.0 --project install
-npx --yes @sentry/dotagents@3.1.0 --project sync
-npx --yes @sentry/dotagents@3.1.0 --project doctor
-```
+The dependency is not in a form APM accepts. Use `owner/repo#vX.Y.Z`, a full HTTPS or SSH git URL, or a local path starting with `./`, `../`, or `/`. `file://` URLs are refused.
 
-### Warnings about `agents.lock` or `.agents/.gitignore` not being ignored
+### The tag is not found
 
-Run the wiring script (it appends the entries) or `npx --yes @sentry/dotagents@3.1.0 --project doctor --fix`.
+Check which tags exist: `apm view jpsmoreira-com/CM-AI-Content-Skills versions`, or `git ls-remote --tags https://github.com/jpsmoreira-com/CM-AI-Content-Skills.git`. Release notes list what each tag contains; an asset may postdate the tag you pinned.
 
-### Node.js missing
+### `--frozen` refuses to install
 
-dotagents needs Node.js 20+. In a devcontainer: `"features": { "ghcr.io/devcontainers/features/node:1": {} }`.
+`apm.lock.yaml` is missing or no longer matches `apm.yml` (typically after bumping the pin). Run `apm install` without the flag, review the lockfile diff, and commit it.
 
-## Wiring script
+### `Could not determine org from git remote` / `No org policy found at unknown`
 
-### `no release given`
+APM's policy engine reads the organization from the portal's git remote and skipped enforcement because there is none (a fresh `mktemp` directory, for example). Harmless locally. To fail closed instead, set `policy.fetch_failure_default: block` in `apm.yml`.
 
-Running remotely, the script needs a tag: pin `CM-AI-Content-Skills@vX.Y.Z` in `agents.toml`, or pass `--ref vX.Y.Z` / set `AI_ASSETS_REF`.
+### An unexpected subagent appears (for example `README`)
 
-### `AI_ASSETS_REF is ... but agents.toml pins ...`
+APM treats every file under `.apm/agents/` as an agent. On the portal side, keep that folder for agents only. On the publishing side, `scripts/validate.py` rejects anything there that is not `*.agent.md`.
 
-The devcontainer's `AI_ASSETS_REF` and the pin in `agents.toml` disagree. Set both to the same tag; rules and skills are released together.
+## `apm compile`
 
-### `could not fetch https://raw.githubusercontent.com/...`
+### `Protected AGENTS.md: hand-authored file will not be overwritten`
 
-The tag does not exist or the container has no network. Verify the tag, or vendor the script into `.devcontainer/` from the pinned tag.
+The portal has an `AGENTS.md` without APM's generated marker, so compile left it alone — which means Codex is reading the old file, not the current guardrails. Move the portal-specific text into `.apm/instructions/portal-rules.instructions.md`, delete `AGENTS.md`, and run `apm compile` again (see the migration section in [consuming.md](consuming.md)).
 
-### `DRIFT: AGENTS.md managed block`
+### `No 'applyTo' pattern specified -- instruction will apply globally`
 
-The block in the portal differs from the pinned release. A plain run updates it; `--check` only reports. Portal-specific text must live outside the markers — anything inside them is overwritten.
+Expected for the shared guardrails and for any portal rule meant to load on every turn. Add `applyTo:` only to rules that should attach to matching files.
 
-### `MISSING: AGENTS.md has no managed block`
+### `Referenced file not found: ... (in link ...)`
 
-An `AGENTS.md` exists without markers. A plain run prepends the block and keeps the existing content below it.
+APM resolves Markdown links inside primitives at compile time. Prose that merely shows link syntax can trigger it; the warning does not block anything. Real broken links in a portal's own instructions should be fixed.
+
+### `CLAUDE.md not generated -- Claude Code reads .claude/rules/ directly`
+
+Informational. Claude Code loads the guardrails from `.claude/rules/cm-ai-content.md`; a `CLAUDE.md` is not needed.
+
+## `apm audit --ci` reports drift
+
+A deployed file differs from what the lockfile recorded — usually a hand edit to an installed copy (for example `.github/instructions/cm-ai-content.instructions.md`). Installed files are overwritten on the next install; put the change in the portal's own `.apm/instructions/` instead, or in this repository if every portal should get it. `apm install` restores the recorded content.
 
 ## `postCreateCommand` failure
 
-Run the command by hand inside the container to see the full output. The usual causes are no network, no Node.js, or a tag that does not exist.
+Run the command by hand inside the container to see the full output. The usual causes are no network, Python older than 3.10, `~/.local/bin` not on `PATH`, or a tag that does not exist.

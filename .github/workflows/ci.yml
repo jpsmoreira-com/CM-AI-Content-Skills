@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  DOTAGENTS_VERSION: 3.1.0
+  APM_VERSION: 0.31.0
 
 jobs:
   validate:
@@ -22,38 +22,36 @@ jobs:
           python-version: "3.12"
       - name: Structural validation
         run: python3 scripts/validate.py
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: dotagents install is idempotent and healthy
+      - name: Install the pinned APM CLI
         run: |
-          npx --yes "@sentry/dotagents@${DOTAGENTS_VERSION}" --project install
-          npx --yes "@sentry/dotagents@${DOTAGENTS_VERSION}" --project install
-          npx --yes "@sentry/dotagents@${DOTAGENTS_VERSION}" --project doctor
+          curl -sSL https://aka.ms/apm-unix | sh -s -- "@v${APM_VERSION}"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Every primitive parses
+        run: apm compile --validate
+      - name: Dogfood install is idempotent and audits clean
+        run: |
+          apm install
+          apm install
+          apm audit --ci
       - name: Install leaves the tracked tree untouched
         run: |
           if [ -n "$(git status --porcelain)" ]; then
             git status --porcelain
-            echo "dotagents install created or changed tracked files" >&2
+            echo "apm install created or changed tracked files" >&2
             exit 1
           fi
-
-  wiring:
-    name: Wiring script
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: bash scripts/test-wiring.sh
+      - name: Consumer smoke test from this checkout
+        run: |
+          portal="$(mktemp -d)"
+          # Same shape as examples/apm.yml, pointed at the checkout instead of a release tag.
+          sed -e "s#- jpsmoreira-com/CM-AI-Content-Skills\#v.*#- ${GITHUB_WORKSPACE}#" examples/apm.yml > "$portal/apm.yml"
+          bash scripts/smoke-portal.sh "$portal"
 
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: shellcheck
-        run: |
-          sudo apt-get update -q && sudo apt-get install -y -q shellcheck
-          shellcheck -S style scripts/*.sh
       - uses: actions/setup-node@v4
         with:
           node-version: 22

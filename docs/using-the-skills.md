@@ -1,6 +1,6 @@
 # Using the Skills
 
-Once a portal is set up ([consuming.md](consuming.md)) nothing needs to be installed on a writer's machine: the devcontainer's `postCreateCommand` does it.
+Once a portal is set up ([consuming.md](consuming.md)) nothing needs to be installed on a writer's machine: the deployed files are committed, and the devcontainer's `postCreateCommand` keeps them in sync.
 
 ## Skills
 
@@ -21,11 +21,11 @@ For bulk work, delegate to a subagent instead of running everything in the main 
 | Review a whole folder or PR against the style guide | "use the docs-style-reviewer agent on docs/module-x" |
 | Sweep for broken links, missing or orphaned assets, `.pages` mismatches | "run the docs-link-auditor on docs/" |
 
-Subagents are available in Claude Code and Codex only — dotagents has no Copilot subagent format. In Copilot, use the `style-guide-validator` skill on the folder instead.
+Both are available in Claude Code, Codex, and GitHub Copilot (pick them from the agent list, or mention them by name).
 
 ## Always-on rules
 
-The managed block in `AGENTS.md` (don't touch generated files, MkDocs config only on explicit request, follow the style guide, and so on) applies automatically. There is nothing to invoke. Portal-specific rules go below the block's end marker.
+The shared guardrails (don't touch generated files, MkDocs config only on explicit request, follow the style guide, and so on) apply automatically: they are compiled into `AGENTS.md` and installed in each tool's native rules folder. There is nothing to invoke. Portal-specific rules live in the portal's own `.apm/instructions/` and compile into the same `AGENTS.md`.
 
 ## When the AI keeps getting something wrong
 

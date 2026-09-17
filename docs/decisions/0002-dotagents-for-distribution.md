@@ -1,7 +1,7 @@
 # 0002 — Distribute skills with dotagents; guardrails via managed AGENTS.md block
 
 - **Date:** 2026-08-30
-- **Status:** accepted
+- **Status:** distribution superseded by [0007](0007-distribute-with-apm.md); the reasoning that guardrails must load unconditionally stands
 
 ## Decision
 

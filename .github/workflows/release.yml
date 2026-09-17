@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 env:
-  DOTAGENTS_VERSION: 3.1.0
+  APM_VERSION: 0.31.0
 
 jobs:
   release:
@@ -22,44 +22,27 @@ jobs:
       - name: Structural validation
         run: python3 scripts/validate.py
 
-      - name: Tag matches CHANGELOG.md and the example pin
+      - name: Tag matches apm.yml, CHANGELOG.md, and the example pin
         run: |
           tag="$GITHUB_REF_NAME"
           version="${tag#v}"
+          grep -qE "^version: ${version//./\\.}$" apm.yml \
+            || { echo "apm.yml is not version $version" >&2; exit 1; }
           grep -qE "^## ${version//./\\.}( |$)" CHANGELOG.md \
             || { echo "CHANGELOG.md has no '## $version' heading" >&2; exit 1; }
-          grep -qF "CM-AI-Content-Skills@${tag}\"" examples/agents.toml \
-            || { echo "examples/agents.toml does not pin $tag" >&2; exit 1; }
-          grep -qF "\"AI_ASSETS_REF\": \"${tag}\"" examples/devcontainer.json \
-            || { echo "examples/devcontainer.json does not pin $tag" >&2; exit 1; }
+          grep -qF "CM-AI-Content-Skills#${tag}" examples/apm.yml \
+            || { echo "examples/apm.yml does not pin $tag" >&2; exit 1; }
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
+      - name: Install the pinned APM CLI
+        run: |
+          curl -sSL https://aka.ms/apm-unix | sh -s -- "@v${APM_VERSION}"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Consumer smoke test from the pushed tag
         run: |
-          tag="$GITHUB_REF_NAME"
           portal="$(mktemp -d)"
-          # Same shape as examples/agents.toml, pointed at the repository that pushed the tag.
-          sed -e "s#jpsmoreira-com/CM-AI-Content-Skills#${GITHUB_REPOSITORY}#g" examples/agents.toml > "$portal/agents.toml"
-          (
-            cd "$portal"
-            git init -q
-            npx --yes "@sentry/dotagents@${DOTAGENTS_VERSION}" --project install
-            npx --yes "@sentry/dotagents@${DOTAGENTS_VERSION}" --project doctor
-            # .agents/skills is the path Codex and Copilot read natively.
-            test -f .agents/skills/style-guide-validator/SKILL.md
-            test -f .agents/skills/tutorial-source-to-mkdocs/SKILL.md
-            test -f .agents/skills/docs-change-summary/SKILL.md
-            test -f .claude/agents/docs-style-reviewer.md
-            # Copilot takes no subagents and gets no project config dir of its own.
-            test ! -e .copilot
-            curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${tag}/scripts/sync-repo-wiring.sh" \
-              | AI_ASSETS_REPO="$GITHUB_REPOSITORY" bash -s -- .
-            AI_ASSETS_REPO="$GITHUB_REPOSITORY" bash scripts/sync-repo-wiring.sh --check . 2>/dev/null \
-              || curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${tag}/scripts/sync-repo-wiring.sh" \
-              | AI_ASSETS_REPO="$GITHUB_REPOSITORY" bash -s -- --check .
-          )
+          # Same shape as examples/apm.yml, pointed at the repository that pushed the tag.
+          sed -e "s#jpsmoreira-com/CM-AI-Content-Skills#${GITHUB_REPOSITORY}#g" examples/apm.yml > "$portal/apm.yml"
+          bash scripts/smoke-portal.sh "$portal"
 
       - name: Extract release notes from CHANGELOG.md
         run: |
