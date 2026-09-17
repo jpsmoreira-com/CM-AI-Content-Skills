@@ -1,0 +1,22 @@
+# apm.yml for a documentation portal that consumes CM-AI-Content-Skills.
+#
+# Copy this file to the portal root, then:
+#   apm install     # deploys the skills, subagents, and guardrails; writes apm.lock.yaml
+#   apm compile     # folds the guardrails (plus your own .apm/instructions/) into AGENTS.md
+# and commit everything APM wrote. In CI and the devcontainer use `apm install --frozen`.
+#
+# `#v1.0.0` is the version pin. Bump it in a reviewed PR, run `apm install` again, and
+# commit the refreshed apm.lock.yaml and deployed files.
+#
+# Portal-specific rules go in your own .apm/instructions/<name>.instructions.md; local
+# primitives always take precedence over installed ones and compile into the same AGENTS.md.
+name: my-docs-portal
+version: 0.1.0
+targets:
+  - copilot
+  - claude
+  - codex
+dependencies:
+  apm:
+    - jpsmoreira-com/CM-AI-Content-Skills#v1.0.0
+  mcp: []

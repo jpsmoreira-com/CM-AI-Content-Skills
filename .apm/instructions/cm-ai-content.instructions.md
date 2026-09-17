@@ -1,9 +1,11 @@
-<!-- cm-ai-content:managed:start -->
+---
+description: Always-on guardrails for documentation portals maintained with AI coding assistants. No applyTo, so every harness loads it on every turn.
+---
 # Content AI Shared Rules
 
-These rules are managed by the CM-AI-Content-Skills repository. Do not edit inside the
-managed block; changes here are overwritten on the next sync. Add repository-specific
-guidance below the managed block instead.
+These rules are published by the CM-AI-Content-Skills repository and installed by APM. Do not
+edit the installed copy; it is overwritten on the next `apm install`. Put portal-specific rules
+in the portal's own `.apm/instructions/*.instructions.md` files, which compile alongside these.
 
 ## Purpose
 
@@ -31,7 +33,7 @@ Applies to Markdown under `docs/`.
 - For new tutorial or module pages, follow nearby examples for frontmatter, `.pages` files, and local asset placement.
 - Store images in a nearby `images/` folder and videos in a nearby `videos/` folder.
 - Preserve tables as Markdown when practical; if conversion would be lossy, call that out.
-- Follow the shared style guide at `.agents/skills/style-guide-validator/references/style-guide-full.md` and the terminology glossary beside it, plus any repository-specific style rules given below this block.
+- Follow the shared style guide at `.agents/skills/style-guide-validator/references/style-guide-full.md` and the terminology glossary beside it, plus any portal-specific style rules in the portal's own instructions.
 - When editing ordered lists, match the repository's existing Markdown linting convention.
 
 ## Protected And Generated Files
@@ -67,4 +69,3 @@ When finishing, report:
 - specifications, pull requests, or other sources used;
 - validation performed;
 - remaining reviewer concerns.
-<!-- cm-ai-content:managed:end -->

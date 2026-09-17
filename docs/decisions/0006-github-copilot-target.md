@@ -1,7 +1,7 @@
 # 0006 — Add GitHub Copilot as a declared dotagents target (skills only)
 
 - **Date:** 2026-09-17
-- **Status:** accepted
+- **Status:** superseded by [0007](0007-distribute-with-apm.md)
 
 ## Decision
 

@@ -1,0 +1,24 @@
+# APM package manifest for CM-AI-Content-Skills. Everything under .apm/ is published;
+# portals consume it by pinning a release tag -- see examples/apm.yml.
+#
+#   apm install            # dogfood: deploy this checkout's primitives into the tool folders
+#   apm compile --validate # check every primitive parses (what CI runs)
+#   apm audit --ci         # hidden Unicode, hash drift, lockfile consistency
+name: cm-ai-content-skills
+version: 1.0.0
+description: Skills, subagents, and always-on guardrails for Critical Manufacturing documentation portals
+author: Critical Manufacturing content team
+license: BSD-3-Clause
+includes: auto
+
+# Pinned so `apm install` here deploys the same tree the consumer smoke test asserts.
+# The deployed copies are gitignored in this repository: .apm/ is the source.
+targets:
+  - copilot
+  - claude
+  - codex
+
+# A published package must not drag transitive context into portals.
+dependencies:
+  apm: []
+  mcp: []

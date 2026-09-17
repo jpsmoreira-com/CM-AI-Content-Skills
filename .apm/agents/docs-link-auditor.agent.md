@@ -11,7 +11,7 @@ You receive a target folder (default: `docs/`). Audit only within the repository
 
 ## Checks
 
-1. **Relative links**: every Markdown link and image reference (`[..](path)`, `![..](path)`, HTML `<img src>`, `<a href>`) that is a relative path must resolve to an existing file. Resolve paths relative to the file containing the link. Flag absolute filesystem paths and links into generated output (`site/`).
+1. **Relative links**: every Markdown link and image reference (`[text](path)`, `![alt](path)`, HTML `<img src>`, `<a href>`) that is a relative path must resolve to an existing file. Resolve paths relative to the file containing the link. Flag absolute filesystem paths and links into generated output (`site/`).
 2. **Anchors**: for links with `#fragment` to files you already read, verify a matching heading exists.
 3. **Assets**: every file under `images/` and `videos/` folders in the target should be referenced by at least one page — list unreferenced ones as orphans. Every referenced asset must exist — list missing ones.
 4. **.pages navigation**: entries in `.pages` files must correspond to existing files or folders, and flag Markdown files in the folder that are absent from an explicit nav listing when the repository's convention lists pages explicitly.

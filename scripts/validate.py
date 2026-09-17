@@ -1,36 +1,50 @@
 #!/usr/bin/env python3
 """Validate the asset layout of CM-AI-Content-Skills before publishing.
 
-Structural checks only (no network): skills and subagents follow the Agent Skills /
-dotagents conventions, agents.toml and examples/ describe exactly what is on disk, the
-managed AGENTS.md block is well-formed, internal links resolve, and the release pin is
-consistent between CHANGELOG.md and the examples. Prints one line per problem; exit 1
-on any problem.
+Structural checks only (no network): the primitives under .apm/ follow the Agent Skills
+and APM conventions, apm.yml and examples/ describe exactly what is on disk, the shared
+guardrails instruction is unconditional and well-formed, internal links resolve, and the
+release version is consistent between apm.yml, CHANGELOG.md, and the examples. Prints
+one line per problem; exit 1 on any problem.
 """
 from __future__ import annotations
 
 import json
 import re
 import sys
-import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILLS = ROOT / "skills"
-AGENTS = ROOT / "agents"
-START_MARK = "<!-- cm-ai-content:managed:start -->"
-END_MARK = "<!-- cm-ai-content:managed:end -->"
+APM = ROOT / ".apm"
+SKILLS = APM / "skills"
+AGENTS = APM / "agents"
+INSTRUCTIONS = APM / "instructions"
+GUARDRAILS = INSTRUCTIONS / "cm-ai-content.instructions.md"
+PACKAGE_NAME = "cm-ai-content-skills"
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
-TAG_RE = re.compile(r"^v(\d+\.\d+\.\d+)$")
-DOTAGENTS_RE = re.compile(r"@sentry/dotagents@(\d+\.\d+\.\d+)")
-# Tools configured by both manifests. "copilot" needs dotagents >= 3.1.0; it writes no
-# project files (Copilot reads .agents/skills/ natively) but must stay declared so CI
-# installs against it. dotagents has no Copilot subagent format, hence SUBAGENT_TARGETS.
-EXPECTED_AGENTS = ["claude", "codex", "copilot"]
-SUBAGENT_TARGETS = ["claude", "codex"]
+SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
+DEP_RE = re.compile(r"^([\w.-]+/[\w.-]+)#v(\d+\.\d+\.\d+)$")
+# Every harness a portal (and this repository's dogfood install) deploys to.
+EXPECTED_TARGETS = ["copilot", "claude", "codex"]
 SKILL_KEYS = {"name", "description", "argument-hint", "license", "compatibility", "metadata", "allowed-tools"}
 # Files whose links are intentionally broken (fixtures and illustrative examples).
-LINK_EXCLUDES = ("evals/", "skills/tutorial-source-to-mkdocs/references/golden-examples/", "skills/style-guide-validator/references/style-guide-full.md")
+LINK_EXCLUDES = (
+    "evals/",
+    ".apm/skills/tutorial-source-to-mkdocs/references/golden-examples/",
+    ".apm/skills/style-guide-validator/references/style-guide-full.md",
+)
+# The pre-APM layout and tooling; none of it may come back.
+LEGACY = (
+    "agents.toml", "agents.lock", "manifest.json", "skills", "agents", "instructions",
+    "examples/agents.toml", "scripts/sync-repo-wiring.sh", "scripts/test-wiring.sh",
+    "scripts/install-ai-assets.sh", "scripts/validate-ai-assets.sh",
+)
+# The APM CLI version is repeated in CI, the devcontainer, and docs; keep them equal.
+APM_VERSION_RES = (
+    re.compile(r"APM_VERSION:\s*[\"']?(\d+\.\d+\.\d+)"),
+    re.compile(r"apm-unix \| sh -s -- @v(\d+\.\d+\.\d+)"),
+    re.compile(r"apm-version:\s*[\"']?(\d+\.\d+\.\d+)"),
+)
 
 problems: list[str] = []
 
@@ -67,6 +81,63 @@ def frontmatter(path: Path) -> tuple[dict[str, str], str]:
     return fields, text[end + 5:]
 
 
+def read_manifest(path: Path) -> dict | None:
+    """Read the flat YAML subset apm.yml uses here: top-level scalars, top-level lists
+    (block or flow), and the nested `dependencies: apm:` / `mcp:` lists. No PyYAML needed."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        problem(path, f"cannot read: {exc}")
+        return None
+
+    def flow_list(value: str) -> list[str]:
+        return [v.strip().strip("'\"") for v in value[1:-1].split(",") if v.strip()]
+
+    data: dict = {}
+    receiving: tuple[dict, str] | None = None  # (mapping, key) that "- item" lines append to
+    section: str | None = None  # top-level key whose indented children are being read
+    for raw in text.splitlines():
+        line = "" if raw.lstrip().startswith("#") else raw.split(" #", 1)[0].rstrip()
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip())
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            if receiving is None:
+                problem(path, f"list item outside a list: {raw!r}")
+                continue
+            mapping, key = receiving
+            if not isinstance(mapping.get(key), list):
+                mapping[key] = []
+            mapping[key].append(stripped[2:].strip().strip("'\""))
+            continue
+        key, sep, value = stripped.partition(":")
+        if not sep:
+            problem(path, f"cannot parse line: {raw!r}")
+            continue
+        key, value = key.strip(), value.strip()
+        target = data
+        if indent == 0:
+            section = key
+        else:
+            if section is None:
+                problem(path, f"indented key without a parent: {raw!r}")
+                continue
+            if not isinstance(data.get(section), dict):
+                data[section] = {}
+            target = data[section]
+        if value == "":
+            target[key] = None
+            receiving = (target, key)
+        elif value.startswith("[") and value.endswith("]"):
+            target[key] = flow_list(value)
+            receiving = None
+        else:
+            target[key] = value.strip("'\"")
+            receiving = None
+    return data
+
+
 def check_links(path: Path) -> None:
     rel = path.relative_to(ROOT).as_posix()
     if rel.startswith(LINK_EXCLUDES):
@@ -84,16 +155,19 @@ def check_links(path: Path) -> None:
 
 def check_skills() -> None:
     if not SKILLS.is_dir():
-        problem("skills", "missing directory")
+        problem(SKILLS, "missing directory")
         return
-    for skill_dir in sorted(p for p in SKILLS.iterdir() if p.is_dir()):
-        skill = skill_dir / "SKILL.md"
+    for entry in sorted(SKILLS.iterdir()):
+        if entry.is_file():
+            problem(entry, "only skill directories belong here")
+            continue
+        skill = entry / "SKILL.md"
         if not skill.is_file():
-            problem(skill_dir, "missing SKILL.md")
+            problem(entry, "missing SKILL.md")
             continue
         fields, body = frontmatter(skill)
         name = fields.get("name", "")
-        if name != skill_dir.name:
+        if name != entry.name:
             problem(skill, f"frontmatter name {name!r} must equal the directory name")
         if not NAME_RE.match(name) or len(name) > 64:
             problem(skill, "name must be lowercase letters, digits and single hyphens, at most 64 characters")
@@ -109,176 +183,114 @@ def check_skills() -> None:
         lines = skill.read_text(encoding="utf-8").count("\n")
         if lines > 500:
             problem(skill, f"{lines} lines, keep SKILL.md under 500 lines and move detail to references/")
-        for md in skill_dir.rglob("*.md"):
+        for md in entry.rglob("*.md"):
             check_links(md)
 
 
 def check_agents() -> set[str]:
     names: set[str] = set()
     if not AGENTS.is_dir():
-        problem("agents", "missing directory")
+        problem(AGENTS, "missing directory")
         return names
-    for agent in sorted(AGENTS.glob("*.md")):
-        if agent.name == "README.md":
-            check_links(agent)
+    for agent in sorted(p for p in AGENTS.iterdir() if p.is_file()):
+        if not agent.name.endswith(".agent.md"):
+            problem(agent, "APM treats every file here as a subagent; name it <name>.agent.md or move it out")
             continue
+        stem = agent.name[: -len(".agent.md")]
         fields, body = frontmatter(agent)
         name = fields.get("name", "")
-        if name != agent.stem:
-            problem(agent, f"frontmatter name {name!r} must equal the file name")
+        if name != stem:
+            problem(agent, f"frontmatter name {name!r} must equal the file name {stem!r}")
         if not NAME_RE.match(name):
             problem(agent, "name must be lowercase letters, digits and single hyphens")
         if not fields.get("description"):
-            problem(agent, "description is required")
-        for key in ("tools", "model"):
-            if key in fields:
-                problem(agent, f"{key!r} is dropped by dotagents for every target; state the constraint in the body instead")
+            problem(agent, "description is required (Copilot and Claude surface the agent by it)")
         if not body.strip():
-            problem(agent, "empty body (dotagents rejects subagents without a body)")
-        names.add(agent.stem)
+            problem(agent, "empty body")
+        check_links(agent)
+        names.add(stem)
     return names
 
 
-def load_toml(path: Path) -> dict | None:
-    try:
-        return tomllib.loads(path.read_text(encoding="utf-8"))
-    except (OSError, tomllib.TOMLDecodeError) as exc:
-        problem(path, f"cannot parse: {exc}")
-        return None
-
-
-def check_agent_list(path: Path, data: dict) -> None:
-    """Both manifests must configure the same tools, so a portal matches what CI installs."""
-    agents = data.get("agents")
-    if agents != EXPECTED_AGENTS:
-        problem(path, f"agents must be {EXPECTED_AGENTS}, got {agents!r}")
-
-
-def check_subagent_targets(path: Path, sub: dict) -> None:
-    targets = sub.get("targets")
-    if targets != SUBAGENT_TARGETS:
-        problem(
-            path,
-            f"subagent {sub.get('name')}: targets must be {SUBAGENT_TARGETS} "
-            "(dotagents has no Copilot subagent format)",
-        )
-
-
-def check_dotagents_version() -> None:
-    """The dotagents version is repeated in docs, CI and the devcontainer; keep them equal."""
-    files = sorted(ROOT.glob("*.md")) + sorted((ROOT / "docs").rglob("*.md"))
-    files += [ROOT / "agents.toml", ROOT / "agents" / "README.md", ROOT / "examples" / "devcontainer.json"]
-    files += sorted((ROOT / ".github" / "workflows").glob("*.yml"))
-    found: dict[str, list[str]] = {}
-    for f in files:
-        if not f.is_file():
-            continue
-        text = f.read_text(encoding="utf-8")
-        versions = set(DOTAGENTS_RE.findall(text))
-        versions |= set(re.findall(r"DOTAGENTS_VERSION:\s*(\d+\.\d+\.\d+)", text))
-        for v in versions:
-            found.setdefault(v, []).append(str(f.relative_to(ROOT)))
-    if len(found) > 1:
-        detail = "; ".join(f"{v} in {', '.join(sorted(p))}" for v, p in sorted(found.items()))
-        problem("scripts/validate.py", f"dotagents version disagrees across files: {detail}")
-
-
-def check_agents_toml(agent_names: set[str]) -> None:
-    path = ROOT / "agents.toml"
-    data = load_toml(path)
-    if data is None:
+def check_instructions() -> None:
+    if not GUARDRAILS.is_file():
+        problem(GUARDRAILS, "missing: the always-on guardrails must ship with every release")
         return
-    if data.get("version") != 1:
-        problem(path, "version must be 1")
-    check_agent_list(path, data)
-    skills = data.get("skills", [])
-    if not any(s.get("name") == "*" and s.get("source") == "path:." and s.get("path") == "skills" for s in skills):
-        problem(path, 'expected a wildcard entry: name = "*", source = "path:.", path = "skills"')
-    declared: set[str] = set()
-    for sub in data.get("subagents", []):
-        name = sub.get("name", "")
-        declared.add(name)
-        if sub.get("source") != "path:.":
-            problem(path, f'subagent {name}: source must be "path:."')
-        if sub.get("path") != f"agents/{name}.md":
-            problem(path, f'subagent {name}: path must be "agents/{name}.md" (keeps repeated installs unambiguous)')
-        check_subagent_targets(path, sub)
-    for name in sorted(agent_names - declared):
-        problem(path, f"subagent {name} exists under agents/ but is not declared")
-    for name in sorted(declared - agent_names):
-        problem(path, f"subagent {name} is declared but agents/{name}.md does not exist")
+    for path in sorted(INSTRUCTIONS.glob("*.md")):
+        if not path.name.endswith(".instructions.md"):
+            problem(path, "instructions must be named <name>.instructions.md")
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "\r" in text:
+            problem(path, "must use LF line endings")
+        if not text.endswith("\n"):
+            problem(path, "must end with a newline")
+        if "cm-ai-content:managed" in text:
+            problem(path, "managed-block markers belong to the retired wiring script")
+        fields, body = frontmatter(path)
+        if not fields.get("description"):
+            problem(path, "description is required")
+        if path == GUARDRAILS and "applyTo" in fields:
+            problem(path, "must not set applyTo: the guardrails load unconditionally, on every turn, in every harness")
+        if not body.strip():
+            problem(path, "empty body")
+        check_links(path)
 
 
-def check_examples(agent_names: set[str]) -> str | None:
-    path = ROOT / "examples" / "agents.toml"
-    data = load_toml(path)
+def check_manifest() -> str | None:
+    path = ROOT / "apm.yml"
+    data = read_manifest(path)
     if data is None:
         return None
-    refs: set[str] = set()
-    repo = None
-    entries = list(data.get("skills", [])) + list(data.get("subagents", []))
-    for entry in entries:
-        source = entry.get("source", "")
-        match = re.match(r"^([\w.-]+/[\w.-]+)@(\S+)$", source)
-        if not match:
-            problem(path, f"{entry.get('name')}: source must be owner/repo@tag, got {source!r}")
-            continue
-        repo = repo or match.group(1)
-        if match.group(1) != repo:
-            problem(path, f"{entry.get('name')}: source repository differs from {repo}")
-        refs.add(match.group(2))
-    if len(refs) != 1:
-        problem(path, f"all sources must pin the same release, found {sorted(refs)}")
-    ref = next(iter(refs), None)
-    if ref and not TAG_RE.match(ref):
-        problem(path, f"release pin {ref!r} must look like vX.Y.Z")
-    check_agent_list(path, data)
-    for sub in data.get("subagents", []):
-        check_subagent_targets(path, sub)
-    if not any(s.get("name") == "*" for s in data.get("skills", [])):
-        problem(path, 'expected a wildcard skills entry (name = "*")')
-    declared = {s.get("name") for s in data.get("subagents", [])}
-    for name in sorted(agent_names ^ declared):
-        problem(path, f"subagent set differs from agents/: {name}")
-    trust = data.get("trust", {}).get("github_repos", [])
-    if repo and repo not in trust:
-        problem(path, f"[trust] github_repos should include {repo}")
+    if data.get("name") != PACKAGE_NAME:
+        problem(path, f"name must be {PACKAGE_NAME!r}")
+    version = data.get("version")
+    if not isinstance(version, str) or not SEMVER_RE.match(version):
+        problem(path, f"version must be X.Y.Z, got {version!r}")
+        version = None
+    if data.get("includes") != "auto":
+        problem(path, "includes must be auto so every primitive under .apm/ is published")
+    if data.get("targets") != EXPECTED_TARGETS:
+        problem(path, f"targets must be {EXPECTED_TARGETS}, got {data.get('targets')!r}")
+    deps = data.get("dependencies") if isinstance(data.get("dependencies"), dict) else {}
+    if deps.get("apm") != []:
+        problem(path, "dependencies.apm must be empty: a published package must not pull transitive context into portals")
+    return version
+
+
+def check_examples(version: str | None) -> None:
+    path = ROOT / "examples" / "apm.yml"
+    data = read_manifest(path)
+    if data is not None:
+        for key in ("name", "version"):
+            if not data.get(key):
+                problem(path, f"{key} is required by apm.yml")
+        if data.get("targets") != EXPECTED_TARGETS:
+            problem(path, f"targets must be {EXPECTED_TARGETS}, got {data.get('targets')!r}")
+        deps = data.get("dependencies") if isinstance(data.get("dependencies"), dict) else {}
+        apm_deps = deps.get("apm") or []
+        if len(apm_deps) != 1:
+            problem(path, f"dependencies.apm must contain exactly this package, got {apm_deps!r}")
+        else:
+            match = DEP_RE.match(apm_deps[0])
+            if not match:
+                problem(path, f"dependency must be owner/repo#vX.Y.Z, got {apm_deps[0]!r}")
+            elif version and match.group(2) != version:
+                problem(path, f"pins v{match.group(2)} but apm.yml is version {version}; the next tag must match both")
 
     devcontainer = ROOT / "examples" / "devcontainer.json"
     try:
         dc = json.loads(devcontainer.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         problem(devcontainer, f"cannot parse: {exc}")
-        return ref
-    dc_ref = dc.get("remoteEnv", {}).get("AI_ASSETS_REF")
-    if dc_ref != ref:
-        problem(devcontainer, f"remoteEnv.AI_ASSETS_REF is {dc_ref!r} but examples/agents.toml pins {ref!r}")
-    if "@sentry/dotagents@" not in dc.get("postCreateCommand", ""):
-        problem(devcontainer, "postCreateCommand must pin the @sentry/dotagents version")
-    return ref
-
-
-def check_managed_block() -> None:
-    path = ROOT / "instructions" / "AGENTS.md"
-    if not path.is_file():
-        problem(path, "missing")
         return
-    text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
-    if "\r" in text:
-        problem(path, "must use LF line endings")
-    if not text.endswith("\n"):
-        problem(path, "must end with a newline")
-    if not lines or lines[0] != START_MARK:
-        problem(path, "first line must be the managed-block start marker")
-    if not lines or lines[-1] != END_MARK:
-        problem(path, "last line must be the managed-block end marker")
-    if text.count(START_MARK) != 1 or text.count(END_MARK) != 1:
-        problem(path, "markers must appear exactly once")
-    check_links(path)
+    command = dc.get("postCreateCommand", "")
+    for needle in ("apm-unix | sh -s -- @v", "apm install --frozen", "apm compile"):
+        if needle not in command:
+            problem(devcontainer, f"postCreateCommand must contain {needle!r}")
 
 
-def check_changelog(ref: str | None) -> None:
+def check_changelog(version: str | None) -> None:
     path = ROOT / "CHANGELOG.md"
     if not path.is_file():
         problem(path, "missing")
@@ -287,27 +299,44 @@ def check_changelog(ref: str | None) -> None:
     if not match:
         problem(path, "no '## X.Y.Z' release heading found")
         return
-    if ref and TAG_RE.match(ref) and TAG_RE.match(ref).group(1) != match.group(1):
-        problem(path, f"top release is {match.group(1)} but examples pin {ref}; the next tag must match both")
+    if version and match.group(1) != version:
+        problem(path, f"top release is {match.group(1)} but apm.yml is version {version}; the next tag must match both")
 
 
 def check_docs_links() -> None:
     for md in sorted(ROOT.glob("*.md")) + sorted((ROOT / "docs").rglob("*.md")):
         check_links(md)
-    for legacy in ("manifest.json", "scripts/install-ai-assets.sh", "scripts/validate-ai-assets.sh"):
+    for legacy in LEGACY:
         if (ROOT / legacy).exists():
-            problem(legacy, "legacy file must not come back")
+            problem(legacy, "retired with the move to APM; must not come back")
+
+
+def check_apm_cli_version() -> None:
+    files = sorted(ROOT.glob("*.md")) + sorted((ROOT / "docs").rglob("*.md"))
+    files += [ROOT / "examples" / "devcontainer.json"]
+    files += sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+    found: dict[str, list[str]] = {}
+    for f in files:
+        if not f.is_file():
+            continue
+        text = f.read_text(encoding="utf-8")
+        versions = {v for regex in APM_VERSION_RES for v in regex.findall(text)}
+        for v in versions:
+            found.setdefault(v, []).append(str(f.relative_to(ROOT)))
+    if len(found) > 1:
+        detail = "; ".join(f"{v} in {', '.join(sorted(p))}" for v, p in sorted(found.items()))
+        problem("scripts/validate.py", f"APM CLI version disagrees across files: {detail}")
 
 
 def main() -> int:
-    agent_names = check_agents()
     check_skills()
-    check_agents_toml(agent_names)
-    ref = check_examples(agent_names)
-    check_managed_block()
-    check_changelog(ref)
+    check_agents()
+    check_instructions()
+    version = check_manifest()
+    check_examples(version)
+    check_changelog(version)
     check_docs_links()
-    check_dotagents_version()
+    check_apm_cli_version()
     for line in problems:
         print(line)
     if problems:
