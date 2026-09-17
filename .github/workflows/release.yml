@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 env:
-  DOTAGENTS_VERSION: 3.0.1
+  DOTAGENTS_VERSION: 3.1.0
 
 jobs:
   release:
@@ -41,14 +41,19 @@ jobs:
           tag="$GITHUB_REF_NAME"
           portal="$(mktemp -d)"
           # Same shape as examples/agents.toml, pointed at the repository that pushed the tag.
-          sed -e "s#usulpt/CM-AI-Content-Skills#${GITHUB_REPOSITORY}#g" examples/agents.toml > "$portal/agents.toml"
+          sed -e "s#jpsmoreira-com/CM-AI-Content-Skills#${GITHUB_REPOSITORY}#g" examples/agents.toml > "$portal/agents.toml"
           (
             cd "$portal"
             git init -q
             npx --yes "@sentry/dotagents@${DOTAGENTS_VERSION}" --project install
             npx --yes "@sentry/dotagents@${DOTAGENTS_VERSION}" --project doctor
+            # .agents/skills is the path Codex and Copilot read natively.
             test -f .agents/skills/style-guide-validator/SKILL.md
+            test -f .agents/skills/tutorial-source-to-mkdocs/SKILL.md
+            test -f .agents/skills/docs-change-summary/SKILL.md
             test -f .claude/agents/docs-style-reviewer.md
+            # Copilot takes no subagents and gets no project config dir of its own.
+            test ! -e .copilot
             curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${tag}/scripts/sync-repo-wiring.sh" \
               | AI_ASSETS_REPO="$GITHUB_REPOSITORY" bash -s -- .
             AI_ASSETS_REPO="$GITHUB_REPOSITORY" bash scripts/sync-repo-wiring.sh --check . 2>/dev/null \
