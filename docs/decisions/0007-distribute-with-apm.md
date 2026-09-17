@@ -5,7 +5,7 @@
 
 ## Decision
 
-Skills, subagents, and the always-on guardrails ship as one [APM](https://github.com/microsoft/apm) package: `apm.yml` at the root, primitives under `.apm/`. Portals pin `jpsmoreira-com/CM-AI-Content-Skills#vX.Y.Z` in their own `apm.yml`, run `apm install` and `apm compile`, and commit the deployed tree. dotagents, `agents.toml`, and `scripts/sync-repo-wiring.sh` are retired. 1.0.0 was never tagged on the dotagents contract, so the first release ships APM directly.
+Skills, subagents, and the always-on guardrails ship as one [APM](https://github.com/microsoft/apm) package: `apm.yml` at the root, primitives under `.apm/`. Portals pin `jpsmoreira-com/CM-AI-Content-Skills#vX.Y.Z` in their own `apm.yml`, run `apm install` and `apm compile`, and commit the deployed tree. dotagents, `agents.toml`, and `scripts/sync-repo-wiring.sh` are retired. The 1.0.0 planned on the dotagents contract was never tagged; the APM contract ships as 0.4.0, the next release after 0.3.0.
 
 ## Why
 

@@ -1,12 +1,12 @@
 # Changelog
 
-## 1.0.0 (unreleased)
+## 0.4.0 (unreleased)
 
-First release of the APM-based contract. Breaking: nothing from 0.x is carried over. Portals consume one package with [APM](https://github.com/microsoft/apm), Microsoft's Agent Package Manager (decision record 0007). dotagents was adopted and replaced before this release shipped (decision records 0002, 0006, 0007); a portal set up from `main` in between follows the migration section in `docs/consuming.md`.
+First release of the APM-based contract. Breaking: nothing from 0.3.0 is carried over. Portals consume one package with [APM](https://github.com/microsoft/apm), Microsoft's Agent Package Manager (decision record 0007). dotagents was adopted and replaced before this release shipped (decision records 0002, 0006, 0007); a portal set up from `main` in between follows the migration section in `docs/consuming.md`.
 
 ### Consumers get
 
-- Skills (`style-guide-validator`, `tutorial-source-to-mkdocs`, `docs-change-summary`), subagents (`docs-style-reviewer`, `docs-link-auditor`), and the always-on guardrails through one `apm.yml` pinned to `#v1.0.0`: `apm install` deploys them, `apm compile` folds the guardrails, together with any portal-local instructions, into `AGENTS.md`.
+- Skills (`style-guide-validator`, `tutorial-source-to-mkdocs`, `docs-change-summary`), subagents (`docs-style-reviewer`, `docs-link-auditor`), and the always-on guardrails through one `apm.yml` pinned to `#v0.4.0`: `apm install` deploys them, `apm compile` folds the guardrails, together with any portal-local instructions, into `AGENTS.md`.
 - Subagents in GitHub Copilot (`.github/agents/`), Claude Code (`.claude/agents/`), and Codex (`.codex/agents/`).
 - Guardrails delivered natively per harness: `.github/instructions/` and `.github/copilot-instructions.md` for Copilot, `.claude/rules/` for Claude Code, compiled `AGENTS.md` for Codex.
 - A lockfile with content hashes (`apm.lock.yaml`), `apm install --frozen` as the CI gate, `apm audit --ci` for drift and hidden-Unicode scanning, and `examples/devcontainer.json` wiring it all into `postCreateCommand`.
@@ -21,7 +21,7 @@ First release of the APM-based contract. Breaking: nothing from 0.x is carried o
 - The devcontainer needs Python 3.10+ for the APM CLI; Node.js is not required.
 - The TFS documentation automation pipeline moved to the `CM-AI-Content-Tools` repository (decision record 0004).
 - Licensed under BSD 3-Clause (`LICENSE`); each skill declares `license: BSD-3-Clause`.
-- `docs/consuming.md` documents installing other packages alongside this one and the cross-package name-clash hazard in APM 0.31.0.
+- `docs/consuming.md` documents portal-authored skills, subagents, and rules in the portal's own `.apm/`, installing other packages alongside this one, and the name-clash hazards in APM 0.31.0.
 
 ## 0.3.0 - 2026-06-30
 

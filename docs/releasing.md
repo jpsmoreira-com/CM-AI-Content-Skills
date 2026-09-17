@@ -20,7 +20,7 @@ Tags are immutable: never move or delete a published tag; cut a new one.
 
 ## Flow
 
-1. **Every PR** adds a line to `CHANGELOG.md` under the next release heading (`## 1.1.0 (unreleased)` — create it if missing, and set `version:` in `apm.yml` and the pin in `examples/apm.yml` to match). CI runs `scripts/validate.py`, `apm compile --validate`, a dogfood install with `apm audit --ci`, the consumer smoke test, and lint.
+1. **Every PR** adds a line to `CHANGELOG.md` under the next release heading (`## 0.5.0 (unreleased)` — create it if missing, and set `version:` in `apm.yml` and the pin in `examples/apm.yml` to match). CI runs `scripts/validate.py`, `apm compile --validate`, a dogfood install with `apm audit --ci`, the consumer smoke test, and lint.
 2. **Release PR**: set the heading to `## X.Y.Z - YYYY-MM-DD`. `validate.py` fails if `apm.yml`, the changelog, and `examples/apm.yml` disagree.
 3. Merge, then tag and push:
 

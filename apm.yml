@@ -5,7 +5,7 @@
 #   apm compile --validate # check every primitive parses (what CI runs)
 #   apm audit --ci         # hidden Unicode, hash drift, lockfile consistency
 name: cm-ai-content-skills
-version: 1.0.0
+version: 0.4.0
 description: Skills, subagents, and always-on guardrails for Critical Manufacturing documentation portals
 author: Critical Manufacturing content team
 license: BSD-3-Clause

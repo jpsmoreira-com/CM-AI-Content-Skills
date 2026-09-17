@@ -34,11 +34,11 @@ targets:
   - codex
 dependencies:
   apm:
-    - jpsmoreira-com/CM-AI-Content-Skills#v1.0.0
+    - jpsmoreira-com/CM-AI-Content-Skills#v0.4.0
   mcp: []
 ```
 
-- `#v1.0.0` is the version pin. Bump it in a reviewed PR to adopt a new release.
+- `#v0.4.0` is the version pin. Bump it in a reviewed PR to adopt a new release.
 - `targets` names the tools to deploy to. Pinning them keeps every machine and CI run producing the same files; without it APM guesses from what it finds on disk.
 - `name` and `version` describe the portal itself (APM requires both) and never need to change.
 
@@ -66,9 +66,18 @@ AGENTS.md                        committed — compiled: portal rules first, the
 
 Committing the deployed tree is APM's model: a fresh clone, CI, and cloud agents such as the Copilot coding agent all see the same files without running anything. `apm install --frozen` refuses to run if the lockfile and `apm.yml` disagree, and `apm audit --ci` fails on drift between the lockfile and what is on disk.
 
-## 4. Portal-specific rules
+## 4. Portal-specific skills, subagents, and rules
 
-Put them in the portal's own `.apm/instructions/<name>.instructions.md`:
+A portal authors its own primitives in its own `.apm/`, next to `apm.yml`. No configuration is needed: `apm install` treats the portal root as a package and deploys them alongside the installed ones, to the same folders.
+
+```text
+.apm/
+  skills/<name>/SKILL.md              -> .agents/skills/, .claude/skills/
+  agents/<name>.agent.md              -> .github/agents/, .claude/agents/, .codex/agents/
+  instructions/<name>.instructions.md -> .github/instructions/, .claude/rules/, and AGENTS.md
+```
+
+A rule that should load on every turn:
 
 ```markdown
 ---
@@ -77,7 +86,11 @@ description: Rules for this portal's build pipeline
 - Never edit files under `generated/`; change the generator instead.
 ```
 
-`apm compile` folds them into `AGENTS.md` ahead of the shared guardrails. Add `applyTo: "docs/**/*.md"` to scope a rule to matching files instead of loading it on every turn. Local primitives take precedence over installed ones with the same name, so do not name one `cm-ai-content`.
+`apm compile` folds it into `AGENTS.md` ahead of the shared guardrails. Add `applyTo: "docs/**/*.md"` to scope a rule to matching files instead. Skills and subagents use the same frontmatter as the shared ones (`name` equal to the directory or file name, plus `description`); `apm compile --validate` checks them.
+
+Keep local names distinct from the shared ones. A local primitive with the same name as an installed one wins everywhere, but `apm audit --ci` then reports the installed copy as drifted and stays red. To change a shared skill, change it in this repository, so every portal gets it; to disable one, do not shadow it, delete it from the portal after install.
+
+Commit `.apm/` with the rest of the deployed tree. Skills or subagents that several portals need belong in a package of their own, installed beside this one (see [Using more than one package](#using-more-than-one-package)).
 
 ## 5. Devcontainer
 
@@ -100,7 +113,7 @@ Codex reads the guardrails only from `AGENTS.md`, so `apm compile` is not option
 ```yaml
 dependencies:
   apm:
-    - jpsmoreira-com/CM-AI-Content-Skills#v1.0.0
+    - jpsmoreira-com/CM-AI-Content-Skills#v0.4.0
     - some-org/other-skills#v3.2.0
   mcp: []
 ```
