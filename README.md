@@ -4,19 +4,19 @@ Reusable AI assets for the Critical Manufacturing content team: skills, subagent
 
 ## What is published
 
-| Asset | Where | How a portal gets it |
-| --- | --- | --- |
-| Skills — on-demand workflows ([Agent Skills](https://agentskills.io): a folder with a `SKILL.md`) | `skills/<name>/` | dotagents `[[skills]]` (wildcard) |
-| Subagents — delegated, read-only bulk review | `agents/<name>.md` | dotagents `[[subagents]]` |
-| Shared rules — always-on guardrails | `instructions/AGENTS.md` | `scripts/sync-repo-wiring.sh`, as a managed block in the portal's `AGENTS.md` |
+| Asset                                            | Where                    | How a portal gets it                                                          |
+| ------------------------------------------------ | ------------------------ | ----------------------------------------------------------------------------- |
+| Skills — ([Agent Skills](https://agentskills.io) | `skills/<name>/`         | dotagents `[[skills]]` (wildcard) — Claude Code, Codex, Copilot               |
+| Subagents — delegated, read-only bulk review     | `agents/<name>.md`       | dotagents `[[subagents]]` — Claude Code and Codex only                        |
+| Shared rules — always-on guardrails              | `instructions/AGENTS.md` | `scripts/sync-repo-wiring.sh`, as a managed block in the portal's `AGENTS.md` |
 
-| Name | Kind | Purpose |
-| --- | --- | --- |
-| `style-guide-validator` | skill | Validate wording and Markdown against the shared style guide and terminology glossary (bundled as references). |
-| `tutorial-source-to-mkdocs` | skill | Convert DOCX / Markdown / HTML tutorial packages with media into MkDocs pages. |
-| `docs-change-summary` | skill | Draft reader-focused commit messages, PR text, and changelog entries. |
-| `docs-style-reviewer` | subagent | Bulk style review of a folder, PR, or converted tutorial. Read-only. |
-| `docs-link-auditor` | subagent | Broken links, missing/orphaned assets, `.pages` mismatches. Read-only. |
+| Name                        | Kind     | Purpose                                                                          |
+| --------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `style-guide-validator`     | skill    | Validate wording and MD against the shared style guide and terminology glossary. |
+| `tutorial-source-to-mkdocs` | skill    | Convert DOCX / Markdown / HTML tutorial packages with media into MkDocs pages.   |
+| `docs-change-summary`       | skill    | Draft reader-focused commit messages, PR text, and changelog entries.            |
+| `docs-style-reviewer`       | subagent | Bulk style review of a folder, PR, or converted tutorial. Read-only.             |
+| `docs-link-auditor`         | subagent | Broken links, missing/orphaned assets, `.pages` mismatches. Read-only.           |
 
 ## Use it in a portal
 
@@ -24,8 +24,8 @@ From the portal root (Node.js 20+ required):
 
 ```bash
 cp <this repo>/examples/agents.toml agents.toml                                   # 1. declare, pinned to a release
-npx --yes @sentry/dotagents@3.0.1 --project install                               # 2. skills + subagents -> .agents/, .claude/, .codex/
-curl -fsSL https://raw.githubusercontent.com/usulpt/CM-AI-Content-Skills/v1.0.0/scripts/sync-repo-wiring.sh | bash -s -- .   # 3. rules
+npx --yes @sentry/dotagents@3.1.0 --project install                               # 2. skills + subagents -> .agents/, .claude/, .codex/
+curl -fsSL https://raw.githubusercontent.com/jpsmoreira-com/CM-AI-Content-Skills/v1.0.0/scripts/sync-repo-wiring.sh | bash -s -- .   # 3. rules
 ```
 
 Commit `agents.toml`, `AGENTS.md`, `CLAUDE.md`, and `.gitignore`. In a devcontainer, `examples/devcontainer.json` runs steps 2–3 on every rebuild. Full contract: [docs/consuming.md](docs/consuming.md). Day-to-day use of the skills: [docs/using-the-skills.md](docs/using-the-skills.md).
@@ -33,10 +33,10 @@ Commit `agents.toml`, `AGENTS.md`, `CLAUDE.md`, and `.gitignore`. In a devcontai
 ## Work on it
 
 ```bash
-npx --yes @sentry/dotagents@3.0.1 --project install   # link the local assets into the tool folders
+npx --yes @sentry/dotagents@3.1.0 --project install   # link the local assets into the tool folders
 python3 scripts/validate.py                           # structural validation (what CI runs)
 bash scripts/test-wiring.sh                           # wiring script smoke tests
-npx --yes @sentry/dotagents@3.0.1 --project sync      # after editing skills/ or agents/
+npx --yes @sentry/dotagents@3.1.0 --project sync      # after editing skills/ or agents/
 ```
 
 Releases are git tags; see [docs/releasing.md](docs/releasing.md). How knowledge flows back into this repository: [CONTRIBUTING.md](CONTRIBUTING.md).

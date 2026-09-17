@@ -6,7 +6,8 @@ First release of the dotagents-based contract. Breaking: nothing from 0.x is car
 
 ### Consumers get
 
-- Skills (`style-guide-validator`, `tutorial-source-to-mkdocs`, `docs-change-summary`) and subagents (`docs-style-reviewer`, `docs-link-auditor`) through [dotagents](https://github.com/getsentry/dotagents): copy `examples/agents.toml` (wildcard skills, explicit subagents, `[trust]`) pinned to `@v1.0.0`, run `npx --yes @sentry/dotagents@3.0.1 --project install`.
+- Skills (`style-guide-validator`, `tutorial-source-to-mkdocs`, `docs-change-summary`) and subagents (`docs-style-reviewer`, `docs-link-auditor`) through [dotagents](https://github.com/getsentry/dotagents): copy `examples/agents.toml` (wildcard skills, explicit subagents, `[trust]`) pinned to `@v1.0.0`, run `npx --yes @sentry/dotagents@3.1.0 --project install`.
+- Three declared tools: `agents = ["claude", "codex", "copilot"]`, on dotagents 3.1.0 (the first version with a GitHub Copilot target). Copilot reads `.agents/skills/` natively, so the skills and the managed `AGENTS.md` block reach it; the two subagents remain Claude Code and Codex only, because dotagents has no Copilot subagent format (decision record 0006).
 - Always-on rules through `scripts/sync-repo-wiring.sh`, run remotely with `curl ... | bash -s -- .`. It fetches the managed block from the release pinned in the portal's `agents.toml`, maintains the block inside the portal's `AGENTS.md`, creates `CLAUDE.md` once, and appends the dotagents runtime entries to `.gitignore`. `--check` reports drift for CI.
 - `examples/devcontainer.json` wiring both steps into `postCreateCommand`.
 

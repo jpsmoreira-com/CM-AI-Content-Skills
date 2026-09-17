@@ -36,7 +36,7 @@ If the release workflow fails, fix forward with a new patch tag; do not retag.
 
 ## Before tagging
 
-- `python3 scripts/validate.py`, `bash scripts/test-wiring.sh`, and `npx --yes @sentry/dotagents@3.0.1 --project install && ... doctor` pass locally (CI runs the same).
+- `python3 scripts/validate.py`, `bash scripts/test-wiring.sh`, and `npx --yes @sentry/dotagents@3.1.0 --project install && ... doctor` pass locally (CI runs the same).
 - If a skill, subagent, the style guide, or the glossary changed, run the affected eval in `evals/` and confirm `expected-findings.md` still matches — or was updated on purpose, with a changelog line.
 - Anything inside the managed block was reviewed by a content lead; every portal inherits it unconditionally.
 

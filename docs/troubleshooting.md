@@ -4,25 +4,25 @@
 
 ### Skills went to `~/.agents` instead of the repository
 
-`--project` was omitted; dotagents defaults to the global scope. Re-run with `--project`, and remove the global entries with `npx --yes @sentry/dotagents@3.0.1 remove <name>` if needed.
+`--project` was omitted; dotagents defaults to the global scope. Re-run with `--project`, and remove the global entries with `npx --yes @sentry/dotagents@3.1.0 remove <name>` if needed.
 
 ### `Failed to resolve skill ... not found`
 
-The `@tag` in `agents.toml` does not exist, or the tag predates the asset. Check: `git ls-remote --tags https://github.com/usulpt/CM-AI-Content-Skills.git`. Release notes list what each tag contains.
+The `@tag` in `agents.toml` does not exist, or the tag predates the asset. Check: `git ls-remote --tags https://github.com/jpsmoreira-com/CM-AI-Content-Skills.git`. Release notes list what each tag contains.
 
 ### Skills missing or symlinks broken
 
 `install` fetches missing skills; `sync` repairs the symlinks and generated tool files; `doctor` reports what is wrong (`doctor --fix` only repairs `.gitignore` entries and tracked generated files).
 
 ```bash
-npx --yes @sentry/dotagents@3.0.1 --project install
-npx --yes @sentry/dotagents@3.0.1 --project sync
-npx --yes @sentry/dotagents@3.0.1 --project doctor
+npx --yes @sentry/dotagents@3.1.0 --project install
+npx --yes @sentry/dotagents@3.1.0 --project sync
+npx --yes @sentry/dotagents@3.1.0 --project doctor
 ```
 
 ### Warnings about `agents.lock` or `.agents/.gitignore` not being ignored
 
-Run the wiring script (it appends the entries) or `npx --yes @sentry/dotagents@3.0.1 --project doctor --fix`.
+Run the wiring script (it appends the entries) or `npx --yes @sentry/dotagents@3.1.0 --project doctor --fix`.
 
 ### Node.js missing
 

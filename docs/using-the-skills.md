@@ -4,7 +4,7 @@ Once a portal is set up ([consuming.md](consuming.md)) nothing needs to be insta
 
 ## Skills
 
-Skills load on demand. Describe the task, or invoke them directly — `/name` in Claude Code and VS Code, `$name` in Codex.
+Skills load on demand. Describe the task, or invoke them directly — `/name` in Claude Code and GitHub Copilot, `$name` in Codex.
 
 | Task | Skill | Example |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ For bulk work, delegate to a subagent instead of running everything in the main 
 | Review a whole folder or PR against the style guide | "use the docs-style-reviewer agent on docs/module-x" |
 | Sweep for broken links, missing or orphaned assets, `.pages` mismatches | "run the docs-link-auditor on docs/" |
 
-Subagents are available in Claude Code and Codex; in VS Code, use the `style-guide-validator` skill on the folder instead.
+Subagents are available in Claude Code and Codex only — dotagents has no Copilot subagent format. In Copilot, use the `style-guide-validator` skill on the folder instead.
 
 ## Always-on rules
 

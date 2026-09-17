@@ -10,5 +10,5 @@ Subagents are for delegated, read-heavy work that benefits from a clean context 
 ## Adding one
 
 1. Create `agents/<name>.md` with `name` (equal to the file name) and `description` frontmatter and a body. dotagents keeps only `name`, `description`, and the body for every target, so state behavioral limits such as "read-only, never edit files" in the body; a `tools:` or `model:` field would be silently dropped and the validator rejects it.
-1. Add a `[[subagents]]` entry to `agents.toml` with `source = "path:."` and `path = "agents/<name>.md"`, and one to `examples/agents.toml` with the GitHub source.
-1. Run `python3 scripts/validate.py` and `npx --yes @sentry/dotagents@3.0.1 --project sync`.
+1. Add a `[[subagents]]` entry to `agents.toml` with `source = "path:."` and `path = "agents/<name>.md"`, and one to `examples/agents.toml` with the GitHub source. Both use `targets = ["claude", "codex"]`; dotagents has no Copilot subagent format, and the validator rejects `"copilot"` here.
+1. Run `python3 scripts/validate.py` and `npx --yes @sentry/dotagents@3.1.0 --project sync`.

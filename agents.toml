@@ -2,15 +2,16 @@
 # checks this repo out gets the skills and subagents linked into the tool-native
 # folders. Portals consume the GitHub source instead — see examples/agents.toml.
 #
-#   npx --yes @sentry/dotagents@3.0.1 --project install   # after cloning or pulling
-#   npx --yes @sentry/dotagents@3.0.1 --project sync      # after editing skills/ or agents/
-#   npx --yes @sentry/dotagents@3.0.1 --project doctor    # health check
+#   npx --yes @sentry/dotagents@3.1.0 --project install   # after cloning or pulling
+#   npx --yes @sentry/dotagents@3.1.0 --project sync      # after editing skills/ or agents/
+#   npx --yes @sentry/dotagents@3.1.0 --project doctor    # health check
 version = 1
 
 # "claude" gets .claude/skills -> .agents/skills and .claude/agents/*.md.
-# "codex" gets .codex/agents/*.toml; Codex and VS Code read .agents/skills/ natively,
-# so no "vscode" target is needed.
-agents = ["claude", "codex"]
+# "codex" gets .codex/agents/*.toml. Codex and Copilot read .agents/skills/ natively, so
+# "copilot" adds no project files of its own; it declares the support that CI verifies
+# and selects ~/.copilot on a user-scope install.
+agents = ["claude", "codex", "copilot"]
 
 # Every directory under skills/ with a SKILL.md, picked up automatically.
 [[skills]]

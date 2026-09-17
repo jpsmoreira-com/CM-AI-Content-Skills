@@ -23,13 +23,13 @@
 #
 # Environment:
 #   AI_ASSETS_REF        release tag (see above)
-#   AI_ASSETS_REPO       GitHub repository, default usulpt/CM-AI-Content-Skills
+#   AI_ASSETS_REPO       GitHub repository, default jpsmoreira-com/CM-AI-Content-Skills
 #   AI_ASSETS_BASE_URL   raw-content base URL, default https://raw.githubusercontent.com/$AI_ASSETS_REPO
 set -euo pipefail
 
 START_MARK='<!-- cm-ai-content:managed:start -->'
 END_MARK='<!-- cm-ai-content:managed:end -->'
-AI_ASSETS_REPO="${AI_ASSETS_REPO:-usulpt/CM-AI-Content-Skills}"
+AI_ASSETS_REPO="${AI_ASSETS_REPO:-jpsmoreira-com/CM-AI-Content-Skills}"
 AI_ASSETS_BASE_URL="${AI_ASSETS_BASE_URL:-https://raw.githubusercontent.com/$AI_ASSETS_REPO}"
 GITIGNORE_ENTRIES=(agents.lock .agents/.gitignore .claude/skills .claude/agents/ .codex/agents/)
 

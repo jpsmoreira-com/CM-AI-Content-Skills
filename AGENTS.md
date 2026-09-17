@@ -14,8 +14,8 @@ Rules for agents working on this repository. What it is and how it is consumed: 
 
 ## Rules
 
-- Public content only: no secrets, internal URLs, customer data, or proprietary details. `usulpt/CM-AI-Content-Skills` is the published source.
+- Public content only: no secrets, internal URLs, customer data, or proprietary details. `jpsmoreira-com/CM-AI-Content-Skills` is the published source.
 - The git tag is the only version. `CHANGELOG.md` gets a line for every change under the next release heading; the examples pin that release.
 - Do not add a manifest, an installer, or per-tool prompt/instruction files: skills and subagents ship through dotagents, guardrails through the managed block.
-- Before finishing: `python3 scripts/validate.py`; `bash scripts/test-wiring.sh` when the wiring script changed; `npx --yes @sentry/dotagents@3.0.1 --project sync` after editing `skills/` or `agents/`.
+- Before finishing: `python3 scripts/validate.py`; `bash scripts/test-wiring.sh` when the wiring script changed; `npx --yes @sentry/dotagents@3.1.0 --project sync` after editing `skills/` or `agents/`.
 - Do not push, tag, or publish unless explicitly asked.

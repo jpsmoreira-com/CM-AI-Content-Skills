@@ -22,6 +22,12 @@ START_MARK = "<!-- cm-ai-content:managed:start -->"
 END_MARK = "<!-- cm-ai-content:managed:end -->"
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 TAG_RE = re.compile(r"^v(\d+\.\d+\.\d+)$")
+DOTAGENTS_RE = re.compile(r"@sentry/dotagents@(\d+\.\d+\.\d+)")
+# Tools configured by both manifests. "copilot" needs dotagents >= 3.1.0; it writes no
+# project files (Copilot reads .agents/skills/ natively) but must stay declared so CI
+# installs against it. dotagents has no Copilot subagent format, hence SUBAGENT_TARGETS.
+EXPECTED_AGENTS = ["claude", "codex", "copilot"]
+SUBAGENT_TARGETS = ["claude", "codex"]
 SKILL_KEYS = {"name", "description", "argument-hint", "license", "compatibility", "metadata", "allowed-tools"}
 # Files whose links are intentionally broken (fixtures and illustrative examples).
 LINK_EXCLUDES = ("evals/", "skills/tutorial-source-to-mkdocs/references/golden-examples/", "skills/style-guide-validator/references/style-guide-full.md")
@@ -141,6 +147,42 @@ def load_toml(path: Path) -> dict | None:
         return None
 
 
+def check_agent_list(path: Path, data: dict) -> None:
+    """Both manifests must configure the same tools, so a portal matches what CI installs."""
+    agents = data.get("agents")
+    if agents != EXPECTED_AGENTS:
+        problem(path, f"agents must be {EXPECTED_AGENTS}, got {agents!r}")
+
+
+def check_subagent_targets(path: Path, sub: dict) -> None:
+    targets = sub.get("targets")
+    if targets != SUBAGENT_TARGETS:
+        problem(
+            path,
+            f"subagent {sub.get('name')}: targets must be {SUBAGENT_TARGETS} "
+            "(dotagents has no Copilot subagent format)",
+        )
+
+
+def check_dotagents_version() -> None:
+    """The dotagents version is repeated in docs, CI and the devcontainer; keep them equal."""
+    files = sorted(ROOT.glob("*.md")) + sorted((ROOT / "docs").rglob("*.md"))
+    files += [ROOT / "agents.toml", ROOT / "agents" / "README.md", ROOT / "examples" / "devcontainer.json"]
+    files += sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+    found: dict[str, list[str]] = {}
+    for f in files:
+        if not f.is_file():
+            continue
+        text = f.read_text(encoding="utf-8")
+        versions = set(DOTAGENTS_RE.findall(text))
+        versions |= set(re.findall(r"DOTAGENTS_VERSION:\s*(\d+\.\d+\.\d+)", text))
+        for v in versions:
+            found.setdefault(v, []).append(str(f.relative_to(ROOT)))
+    if len(found) > 1:
+        detail = "; ".join(f"{v} in {', '.join(sorted(p))}" for v, p in sorted(found.items()))
+        problem("scripts/validate.py", f"dotagents version disagrees across files: {detail}")
+
+
 def check_agents_toml(agent_names: set[str]) -> None:
     path = ROOT / "agents.toml"
     data = load_toml(path)
@@ -148,6 +190,7 @@ def check_agents_toml(agent_names: set[str]) -> None:
         return
     if data.get("version") != 1:
         problem(path, "version must be 1")
+    check_agent_list(path, data)
     skills = data.get("skills", [])
     if not any(s.get("name") == "*" and s.get("source") == "path:." and s.get("path") == "skills" for s in skills):
         problem(path, 'expected a wildcard entry: name = "*", source = "path:.", path = "skills"')
@@ -159,6 +202,7 @@ def check_agents_toml(agent_names: set[str]) -> None:
             problem(path, f'subagent {name}: source must be "path:."')
         if sub.get("path") != f"agents/{name}.md":
             problem(path, f'subagent {name}: path must be "agents/{name}.md" (keeps repeated installs unambiguous)')
+        check_subagent_targets(path, sub)
     for name in sorted(agent_names - declared):
         problem(path, f"subagent {name} exists under agents/ but is not declared")
     for name in sorted(declared - agent_names):
@@ -188,6 +232,9 @@ def check_examples(agent_names: set[str]) -> str | None:
     ref = next(iter(refs), None)
     if ref and not TAG_RE.match(ref):
         problem(path, f"release pin {ref!r} must look like vX.Y.Z")
+    check_agent_list(path, data)
+    for sub in data.get("subagents", []):
+        check_subagent_targets(path, sub)
     if not any(s.get("name") == "*" for s in data.get("skills", [])):
         problem(path, 'expected a wildcard skills entry (name = "*")')
     declared = {s.get("name") for s in data.get("subagents", [])}
@@ -260,6 +307,7 @@ def main() -> int:
     check_managed_block()
     check_changelog(ref)
     check_docs_links()
+    check_dotagents_version()
     for line in problems:
         print(line)
     if problems:

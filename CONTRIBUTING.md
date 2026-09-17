@@ -7,15 +7,15 @@ This repository only compounds in value if what the team learns flows back into 
 
 ## Where each kind of knowledge goes
 
-| You learned... | Put it in | Ships to portals via |
-| --- | --- | --- |
-| A wording/formatting rule | `skills/style-guide-validator/references/style-guide-full.md` | bundled with the skill |
-| An approved/forbidden term | `skills/style-guide-validator/references/terminology-glossary.md` | bundled with the skill |
-| A repeatable workflow | a skill under `skills/` | dotagents (picked up automatically) |
-| A delegated review/audit routine | a subagent under `agents/` | dotagents (one `[[subagents]]` entry in `agents.toml` and `examples/agents.toml`) |
-| An always-on guardrail | the managed block in `instructions/AGENTS.md` — keep it short, it loads every turn | wiring script |
-| Why we decided something | `docs/decisions/` | stays here (reference) |
-| A great page worth imitating | `skills/tutorial-source-to-mkdocs/references/golden-examples/` | bundled with the skill |
+| You learned...                   | Put it in                                                                          | Ships to portals via                                                                                           |
+| -------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| A wording/formatting rule        | `skills/style-guide-validator/references/style-guide-full.md`                      | bundled with the skill                                                                                         |
+| An approved/forbidden term       | `skills/style-guide-validator/references/terminology-glossary.md`                  | bundled with the skill                                                                                         |
+| A repeatable workflow            | a skill under `skills/`                                                            | dotagents (picked up automatically)                                                                            |
+| A delegated review/audit routine | a subagent under `agents/`                                                         | dotagents (one `[[subagents]]` entry in `agents.toml` and `examples/agents.toml`) — Claude Code and Codex only |
+| An always-on guardrail           | the managed block in `instructions/AGENTS.md` — keep it short, it loads every turn | wiring script                                                                                                  |
+| Why we decided something         | `docs/decisions/`                                                                  | stays here (reference)                                                                                         |
+| A great page worth imitating     | `skills/tutorial-source-to-mkdocs/references/golden-examples/`                     | bundled with the skill                                                                                         |
 
 ## How to contribute
 
